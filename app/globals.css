@@ -646,3 +646,32 @@ textarea.mic-input { resize: vertical; min-height: 5.5rem; line-height: 1.45; }
 .adm-sort-icon { display: inline-flex; opacity: 0.35; }
 .adm-sort[data-active="true"] .adm-sort-icon { opacity: 1; color: var(--blue); }
 .adm-table th.num .adm-sort { justify-content: flex-end; width: 100%; }
+
+/* end-of-course rating */
+.cb-rating { border-top: 1px solid #BFE0D8; margin-top: 1.2rem; padding-top: 1.1rem; }
+.cb-rating h3 { margin: 0; }
+.cb-rating-head { display: flex; align-items: center; gap: 0.8rem; }
+.cb-stars { display: flex; align-items: center; gap: 0.15rem; margin: 0.8rem 0 0.2rem; }
+.cb-star {
+  background: none; border: 0; padding: 0.15rem; cursor: pointer; color: var(--line); border-radius: 8px;
+  display: inline-flex; transition: transform 120ms ease, color 120ms ease;
+}
+.cb-star svg { fill: currentColor; }
+.cb-star[data-on="true"] { color: #F5B400; }
+.cb-star:hover { transform: scale(1.12); }
+.cb-star-icon { color: var(--line); fill: currentColor; }
+.cb-star-icon[data-on="true"] { color: #F5B400; }
+.cb-star-word { margin-left: 0.6rem; font-size: 0.88rem; font-weight: 600; color: var(--ink-2); min-width: 6rem; }
+.cb-rating-quote { margin: 0.6rem 0 0; font-size: 0.95rem; color: var(--ink-2); font-style: italic; }
+.cb-field { display: block; margin: 1rem 0 0.35rem; font-size: 0.88rem; font-weight: 600; }
+
+/* admin rating display */
+.adm-stars { color: #F5B400; letter-spacing: 0.05em; font-size: 0.95rem; white-space: nowrap; }
+.adm-stars-off { color: var(--line); }
+.adm-ratings { display: grid; gap: 0.6rem; }
+.adm-rating { border: 1px solid var(--line); border-radius: 12px; padding: 0.85rem 1rem; background: var(--paper); }
+.adm-rating-head { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; font-size: 0.88rem; }
+.adm-rating-head a { font-weight: 600; color: var(--ink); text-decoration: none; }
+.adm-rating-head a:hover { text-decoration: underline; }
+.adm-rating p { margin: 0.45rem 0 0; font-size: 0.93rem; color: var(--ink-2); white-space: pre-wrap; }
+.badge[data-type="rating"] { background: #FFF6DB; color: #8A5A00; }

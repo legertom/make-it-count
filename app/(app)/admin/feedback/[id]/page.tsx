@@ -8,7 +8,7 @@ import { pageTitle } from "@/lib/course-pages";
 
 export const dynamic = "force-dynamic";
 
-const TYPE_LABELS: Record<string, string> = { bug: "Bug", feature: "Feature request", other: "Comment" };
+const TYPE_LABELS: Record<string, string> = { bug: "Bug", feature: "Feature request", other: "Comment", rating: "Course rating" };
 
 export default async function FeedbackDetailPage({ params }: PageProps<"/admin/feedback/[id]">) {
   const { id } = await params;
@@ -57,7 +57,7 @@ export default async function FeedbackDetailPage({ params }: PageProps<"/admin/f
               <dt>Updated</dt><dd>{fmtDate(row.updatedAt, true)}</dd>
               <dt>Course page</dt><dd>{row.coursePage ? `${pageTitle(row.coursePage)} (${row.coursePage})` : "—"}</dd>
               <dt>Path</dt><dd>{row.page ?? "—"}</dd>
-              <dt>Via</dt><dd>{row.source === "agent" ? "Feedback assistant" : "Direct form"}</dd>
+              <dt>Via</dt><dd>{row.source === "agent" ? "Feedback assistant" : row.source === "rating" ? "End-of-course rating" : "Direct form"}</dd>
               {row.agentSessionId && (<><dt>Agent session</dt><dd style={{ fontFamily: "var(--mono)", fontSize: "0.78rem" }}>{row.agentSessionId}</dd></>)}
               <dt>Browser</dt><dd style={{ fontSize: "0.78rem" }}>{row.userAgent ?? "—"}</dd>
               <dt>Id</dt><dd style={{ fontFamily: "var(--mono)", fontSize: "0.78rem" }}>{row.id}</dd>

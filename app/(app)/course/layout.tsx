@@ -31,6 +31,8 @@ export default async function CourseLayout({ children }: LayoutProps<"/course">)
           furthestIndex: progress?.furthestIndex ?? 0,
           answers: (progress?.answers ?? {}) as Partial<CourseAnswers>,
           completedAt: progress?.completedAt ? progress.completedAt.toISOString() : null,
+          rating: progress?.rating ?? null,
+          ratingComment: progress?.ratingComment ?? null,
         }}
       />
     </>

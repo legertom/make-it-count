@@ -2,14 +2,14 @@ import Link from "next/link";
 import { ResetLearnerButton } from "@/components/admin/ResetLearnerButton";
 import { SortableTable, type SortableRow } from "@/components/admin/SortableTable";
 import { pageTitle } from "@/lib/course-pages";
-import { listLearners, pageStats } from "@/lib/db/queries";
+import { listLearners, listRatings, pageStats } from "@/lib/db/queries";
 import { fmtDate, fmtDuration, initials, timeAgo } from "@/lib/format";
 import { elapsedMs, overview, pageRows, progressLabel } from "@/lib/learning-stats";
 
 export const dynamic = "force-dynamic";
 
 export default async function LearnersPage() {
-  const [learners, stats] = await Promise.all([listLearners(), pageStats()]);
+  const [learners, stats, ratings] = await Promise.all([listLearners(), pageStats(), listRatings()]);
   const o = overview(learners);
   const pages = pageRows(learners, stats);
 
@@ -28,6 +28,7 @@ export default async function LearnersPage() {
         lastLogin: l.lastLoginAt.getTime(),
         lastActive: l.lastSeenAt.getTime(),
         logins: l.loginCount,
+        rating: l.rating ?? -1,
       },
       cells: [
         <Link key="p" href={`/admin/learners/${encodeURIComponent(l.email)}`} className="adm-person">
@@ -61,6 +62,7 @@ export default async function LearnersPage() {
         <span key="ll" className="nowrap muted" title={fmtDate(l.lastLoginAt, true)}>{timeAgo(l.lastLoginAt)}</span>,
         <span key="la" className="nowrap muted" title={fmtDate(l.lastSeenAt, true)}>{timeAgo(l.lastSeenAt)}</span>,
         <span key="lg" className="muted">{l.loginCount}</span>,
+        <span key="rt" className="nowrap" title={l.ratingComment ?? undefined}>{l.rating ? <Stars n={l.rating} /> : <span className="muted">—</span>}</span>,
         <span key="r" className="nowrap">{l.startedAt && <ResetLearnerButton email={l.email} name={l.name} compact />}</span>,
       ],
     };
@@ -105,6 +107,7 @@ export default async function LearnersPage() {
         <div className="adm-stat"><b>{fmtDuration(o.medianActiveMsToComplete)}</b><span>Median active time</span></div>
         <div className="adm-stat"><b>{fmtDuration(o.avgElapsedMsToComplete)}</b><span>Avg elapsed to finish</span></div>
         <div className="adm-stat"><b>{o.activeLast7d}</b><span>Active in last 7 days</span></div>
+        <div className="adm-stat"><b>{o.ratingCount ? `${o.avgRating.toFixed(1)} / 5` : "—"}</b><span>Avg rating ({o.ratingCount} rating{o.ratingCount === 1 ? "" : "s"})</span></div>
       </div>
 
       <h2>Roster</h2>
@@ -121,12 +124,35 @@ export default async function LearnersPage() {
           { key: "lastLogin", label: "Last login", defaultDir: "desc" },
           { key: "lastActive", label: "Last active", defaultDir: "desc" },
           { key: "logins", label: "Logins", num: true },
+          { key: "rating", label: "Rating", defaultDir: "desc" },
           { key: "actions", label: "", sortable: false },
         ]}
         rows={rosterRows}
         initialSort={{ key: "lastActive", dir: "desc" }}
         empty="Nobody has signed in yet."
       />
+
+      <h2>What people said</h2>
+      <p className="adm-lede" style={{ fontSize: "0.88rem" }}>
+        The star rating and comment each learner leaves after marking the course complete. Ratings also appear on
+        the Feedback page under the &ldquo;Rating&rdquo; type.
+      </p>
+      {ratings.length === 0 ? (
+        <p className="adm-empty" style={{ border: "1px solid var(--line)", borderRadius: 12 }}>No ratings yet.</p>
+      ) : (
+        <div className="adm-ratings">
+          {ratings.map((r) => (
+            <div key={r.email} className="adm-rating">
+              <div className="adm-rating-head">
+                <Stars n={r.rating} />
+                <Link href={`/admin/learners/${encodeURIComponent(r.email)}`}>{r.name || r.email}</Link>
+                <span className="muted">{fmtDate(r.ratedAt, true)}</span>
+              </div>
+              {r.comment ? <p>{r.comment}</p> : <p className="muted">No written comment.</p>}
+            </div>
+          ))}
+        </div>
+      )}
 
       <h2>Time per page</h2>
       <p className="adm-lede" style={{ fontSize: "0.88rem" }}>
@@ -147,5 +173,14 @@ export default async function LearnersPage() {
         initialSort={{ key: "n", dir: "asc" }}
       />
     </>
+  );
+}
+
+function Stars({ n }: { n: number }) {
+  return (
+    <span className="adm-stars" aria-label={`${n} out of 5 stars`} title={`${n} out of 5`}>
+      {"★".repeat(n)}
+      <span className="adm-stars-off">{"★".repeat(5 - n)}</span>
+    </span>
   );
 }

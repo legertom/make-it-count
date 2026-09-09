@@ -100,6 +100,20 @@ export default async function LearnerDetailPage({ params }: PageProps<"/admin/le
             <ResetLearnerButton email={l.email} name={l.name} />
           </div>
           <div className="adm-card">
+            <h3>Course rating</h3>
+            {l.rating ? (
+              <>
+                <p style={{ margin: "0 0 0.4rem", fontSize: "1.2rem", letterSpacing: "0.05em", color: "#F5B400" }} aria-label={`${l.rating} out of 5 stars`}>
+                  {"★".repeat(l.rating)}<span style={{ color: "var(--line)" }}>{"★".repeat(5 - l.rating)}</span>
+                  <span style={{ fontSize: "0.85rem", color: "var(--ink-2)", marginLeft: "0.5rem", letterSpacing: 0 }}>{l.rating}/5 · {fmtDate(l.ratedAt, true)}</span>
+                </p>
+                <p className="adm-desc" style={{ margin: 0 }}>{l.ratingComment || <span className="muted">No written comment.</span>}</p>
+              </>
+            ) : (
+              <p className="muted" style={{ margin: 0, fontSize: "0.9rem" }}>Not rated yet.</p>
+            )}
+          </div>
+          <div className="adm-card">
             <h3>Answers and interactive state</h3>
             <pre className="adm-answers">{JSON.stringify(progress?.answers ?? {}, null, 2)}</pre>
           </div>

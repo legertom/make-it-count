@@ -8,7 +8,7 @@ import { pageTitle } from "@/lib/course-pages";
 
 export const dynamic = "force-dynamic";
 
-const TYPE_LABELS: Record<string, string> = { bug: "Bug", feature: "Feature", other: "Comment" };
+const TYPE_LABELS: Record<string, string> = { bug: "Bug", feature: "Feature", other: "Comment", rating: "Rating" };
 
 function pick<T extends string>(raw: string | string[] | undefined, allowed: readonly T[]): T | undefined {
   const v = Array.isArray(raw) ? raw[0] : raw;

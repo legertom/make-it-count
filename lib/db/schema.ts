@@ -25,6 +25,12 @@ export const progress = pgTable("progress", {
   startedAt: tsNow("started_at"),
   updatedAt: tsNow("updated_at"),
   completedAt: timestamp("completed_at", { withTimezone: true }),
+  /** 1-5 stars, asked once the learner marks the course complete. */
+  rating: integer("rating"),
+  ratingComment: text("rating_comment"),
+  ratedAt: timestamp("rated_at", { withTimezone: true }),
+  /** The feedback row that mirrors this rating on the admin Feedback page. */
+  ratingFeedbackId: text("rating_feedback_id"),
   /** How many times an admin has reset this learner. */
   resetCount: integer("reset_count").notNull().default(0),
 });
@@ -56,7 +62,7 @@ export const screenshots = pgTable("screenshots", {
   createdAt: tsNow("created_at"),
 });
 
-export const feedbackTypeEnum = pgEnum("feedback_type", ["bug", "feature", "other"]);
+export const feedbackTypeEnum = pgEnum("feedback_type", ["bug", "feature", "other", "rating"]);
 export const feedbackStatusEnum = pgEnum("feedback_status", [
   "new",
   "triaged",
@@ -83,7 +89,7 @@ export const feedback = pgTable(
     screenshotId: text("screenshot_id").references(() => screenshots.id, {
       onDelete: "set null",
     }),
-    /** `agent` (via the eve chat) or `form` (direct submit). */
+    /** `agent` (via the eve chat), `form` (direct submit), or `rating` (end-of-course stars). */
     source: text("source").notNull().default("agent"),
     agentSessionId: text("agent_session_id"),
     adminNotes: text("admin_notes"),

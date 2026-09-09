@@ -126,6 +126,97 @@ export async function markComplete(email: string): Promise<ProgressRow> {
   return rows[0];
 }
 
+const STARS = ["", "★☆☆☆☆", "★★☆☆☆", "★★★☆☆", "★★★★☆", "★★★★★"];
+
+export async function saveRating(input: {
+  email: string;
+  name: string | null;
+  rating: number;
+  comment: string | null;
+}) {
+  const db = await getDb();
+  const now = new Date();
+  const title = `${STARS[input.rating]} ${input.rating}/5 course rating`;
+  const description = input.comment ?? "(No written comment.)";
+
+  const existing = await getProgress(input.email);
+  let feedbackId = existing?.ratingFeedbackId ?? null;
+  if (feedbackId) {
+    const updated = await db
+      .update(feedback)
+      .set({ title, description, updatedAt: now })
+      .where(eq(feedback.id, feedbackId))
+      .returning({ id: feedback.id });
+    if (updated.length === 0) feedbackId = null;
+  }
+  if (!feedbackId) {
+    const rows = await db
+      .insert(feedback)
+      .values({
+        id: newId("fb"),
+        type: "rating",
+        title,
+        description,
+        page: "/course/done",
+        coursePage: "done",
+        submittedBy: input.email,
+        submitterName: input.name,
+        source: "rating",
+      })
+      .returning({ id: feedback.id });
+    feedbackId = rows[0].id;
+  }
+
+  await db
+    .insert(progress)
+    .values({
+      email: input.email,
+      rating: input.rating,
+      ratingComment: input.comment,
+      ratedAt: now,
+      ratingFeedbackId: feedbackId,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: progress.email,
+      set: {
+        rating: input.rating,
+        ratingComment: input.comment,
+        ratedAt: now,
+        ratingFeedbackId: feedbackId,
+        updatedAt: now,
+      },
+    });
+}
+
+export type RatingRow = {
+  email: string;
+  name: string | null;
+  rating: number;
+  comment: string | null;
+  ratedAt: Date;
+};
+
+/** Every course rating, newest first. */
+export async function listRatings(): Promise<RatingRow[]> {
+  const db = await getDb();
+  const rows = await db
+    .select({
+      email: progress.email,
+      name: users.name,
+      rating: progress.rating,
+      comment: progress.ratingComment,
+      ratedAt: progress.ratedAt,
+    })
+    .from(progress)
+    .leftJoin(users, eq(users.email, progress.email))
+    .where(sql`${progress.rating} is not null`)
+    .orderBy(desc(progress.ratedAt));
+  return rows
+    .filter((r): r is typeof r & { rating: number; ratedAt: Date } => r.rating !== null && r.ratedAt !== null)
+    .map((r) => ({ email: r.email, name: r.name, rating: r.rating, comment: r.comment, ratedAt: r.ratedAt }));
+}
+
 export async function clearCompletion(email: string) {
   const db = await getDb();
   await db
@@ -149,6 +240,10 @@ export async function resetProgress(email: string) {
       startedAt: now,
       updatedAt: now,
       completedAt: null,
+      rating: null,
+      ratingComment: null,
+      ratedAt: null,
+      ratingFeedbackId: null,
       resetCount: sql`${progress.resetCount} + 1`,
     })
     .where(eq(progress.email, email));
@@ -168,6 +263,9 @@ export type LearnerRow = {
   startedAt: Date | null;
   updatedAt: Date | null;
   completedAt: Date | null;
+  rating: number | null;
+  ratingComment: string | null;
+  ratedAt: Date | null;
   resetCount: number | null;
   activeMs: number;
   views: number;
@@ -200,6 +298,9 @@ export async function listLearners(): Promise<LearnerRow[]> {
       startedAt: progress.startedAt,
       updatedAt: progress.updatedAt,
       completedAt: progress.completedAt,
+      rating: progress.rating,
+      ratingComment: progress.ratingComment,
+      ratedAt: progress.ratedAt,
       resetCount: progress.resetCount,
       activeMs: sql<number>`coalesce(${pv.activeMs}, 0)::int`,
       views: sql<number>`coalesce(${pv.views}, 0)::int`,

@@ -21,6 +21,8 @@ export type Overview = {
   medianActiveMsToComplete: number;
   avgElapsedMsToComplete: number;
   activeLast7d: number;
+  ratingCount: number;
+  avgRating: number;
 };
 
 export function overview(learners: LearnerRow[]): Overview {
@@ -31,7 +33,10 @@ export function overview(learners: LearnerRow[]): Overview {
     .map((l) => (l.completedAt && l.startedAt ? l.completedAt.getTime() - l.startedAt.getTime() : 0))
     .filter((x) => x > 0);
   const weekAgo = Date.now() - 7 * 86_400_000;
+  const ratings = learners.map((l) => l.rating).filter((r): r is number => typeof r === "number");
   return {
+    ratingCount: ratings.length,
+    avgRating: mean(ratings),
     signedIn: learners.length,
     started: started.length,
     completed: completed.length,

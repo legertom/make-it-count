@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { ArrowRight, Check, Copy, Minus } from "lucide-react";
+import { ArrowRight, Check, Copy, Minus, Star } from "lucide-react";
 import { CHAPTERS, PAGES, PAGE_COUNT, pageIndex, pageUrl } from "@/lib/course-pages";
 import { fmtDate, initials } from "@/lib/format";
-import { clearCompletionAction, markCompleteAction, signOutAction } from "@/app/(app)/actions";
+import { clearCompletionAction, markCompleteAction, signOutAction, submitRatingAction } from "@/app/(app)/actions";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -56,6 +56,8 @@ type Props = {
     furthestIndex: number;
     answers: Partial<CourseAnswers>;
     completedAt: string | null;
+    rating: number | null;
+    ratingComment: string | null;
   };
 };
 
@@ -378,7 +380,120 @@ const HABIT_MAP = [
 /*  Completion record                                                  */
 /* ------------------------------------------------------------------ */
 
-function CompletionRecord({ user, initialCompletedAt }: { user: User; initialCompletedAt: string | null }) {
+const STAR_WORDS = ["", "Not useful", "Meh", "Fine", "Good", "Excellent"];
+
+function CourseRating({ initialRating, initialComment }: { initialRating: number | null; initialComment: string | null }) {
+  const [saved, setSaved] = useState<{ rating: number; comment: string } | null>(
+    initialRating ? { rating: initialRating, comment: initialComment ?? "" } : null,
+  );
+  const [editing, setEditing] = useState(initialRating === null);
+  const [rating, setRating] = useState<number>(initialRating ?? 0);
+  const [hover, setHover] = useState(0);
+  const [comment, setComment] = useState(initialComment ?? "");
+  const [error, setError] = useState(false);
+  const [pending, start] = useTransition();
+
+  const send = () =>
+    start(async () => {
+      try {
+        await submitRatingAction(rating, comment);
+        setSaved({ rating, comment: comment.trim() });
+        setEditing(false);
+        setError(false);
+      } catch {
+        setError(true);
+      }
+    });
+
+  const shown = hover || rating;
+
+  if (!editing && saved) {
+    return (
+      <div className="cb-rating" data-state="done">
+        <div className="cb-rating-head">
+          <h3>Thanks for the feedback</h3>
+          <button type="button" className="cb-linkbtn" onClick={() => setEditing(true)}>
+            Change it
+          </button>
+        </div>
+        <div className="cb-stars" aria-label={`${saved.rating} out of 5 stars`}>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <Star key={n} size={22} className="cb-star-icon" data-on={n <= saved.rating} aria-hidden="true" />
+          ))}
+          <span className="cb-star-word">{STAR_WORDS[saved.rating]}</span>
+        </div>
+        {saved.comment && <p className="cb-rating-quote">&ldquo;{saved.comment}&rdquo;</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="cb-rating">
+      <h3>One last thing: how was it?</h3>
+      <p style={{ margin: "0.35rem 0 0", fontSize: "0.95rem" }}>
+        Rate the course and tell us what you'd change. It goes straight to the people who maintain it.
+      </p>
+      <div className="cb-stars" role="radiogroup" aria-label="Rate the course from 1 to 5 stars" onMouseLeave={() => setHover(0)}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            role="radio"
+            aria-checked={rating === n}
+            aria-label={`${n} star${n > 1 ? "s" : ""}: ${STAR_WORDS[n]}`}
+            className="cb-star"
+            data-on={n <= shown}
+            onMouseEnter={() => setHover(n)}
+            onFocus={() => setHover(n)}
+            onBlur={() => setHover(0)}
+            onClick={() => setRating(n)}
+          >
+            <Star size={26} aria-hidden="true" />
+          </button>
+        ))}
+        <span className="cb-star-word" aria-live="polite">{shown ? STAR_WORDS[shown] : ""}</span>
+      </div>
+      <label className="cb-field" htmlFor="cb-rating-comment">Anything you'd change or add? (optional)</label>
+      <textarea
+        id="cb-rating-comment"
+        className="mic-input"
+        rows={3}
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="What was confusing, what was missing, what landed."
+        maxLength={4000}
+      />
+      <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", marginTop: "0.8rem", flexWrap: "wrap" }}>
+        <button type="button" className="cb-btn cb-btn-primary" onClick={send} disabled={pending || rating === 0}>
+          {pending ? "Sending…" : "Send feedback"}
+        </button>
+        {saved && (
+          <button type="button" className="cb-btn cb-btn-ghost" onClick={() => setEditing(false)}>
+            Cancel
+          </button>
+        )}
+        {rating === 0 && <span style={{ fontSize: "0.82rem", color: "var(--ink-3)" }}>Pick a star rating first.</span>}
+      </div>
+      {error && (
+        <Feedback tone="rethink" title="That didn't save">
+          Something went wrong sending your rating. Try again in a moment.
+        </Feedback>
+      )}
+    </div>
+  );
+}
+
+function CompletionRecord({
+  user,
+  initialCompletedAt,
+  initialRating,
+  initialRatingComment,
+}: {
+  user: User;
+  initialCompletedAt: string | null;
+  initialRating: number | null;
+  initialRatingComment: string | null;
+}) {
   const [completedAt, setCompletedAt] = useState<string | null>(initialCompletedAt);
   const [error, setError] = useState(false);
   const [pending, start] = useTransition();
@@ -419,6 +534,7 @@ function CompletionRecord({ user, initialCompletedAt }: { user: User; initialCom
             </button>
           </div>
         </div>
+        <CourseRating initialRating={initialRating} initialComment={initialRatingComment} />
       </div>
     );
   }
@@ -1459,7 +1575,12 @@ export function MakeItCount({ user, initial }: Props) {
                 </button>
               </div>
 
-              <CompletionRecord user={user} initialCompletedAt={initial.completedAt} />
+              <CompletionRecord
+                user={user}
+                initialCompletedAt={initial.completedAt}
+                initialRating={initial.rating}
+                initialRatingComment={initial.ratingComment}
+              />
 
               <div className="cb-panel" style={{ marginTop: "2.2rem" }}>
                 <h3>The two things underneath all of it</h3>

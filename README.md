@@ -13,6 +13,7 @@ progress.
 | Feedback widget | `components/feedback/*` | Floating button → chat with the eve agent, or a direct form. Screenshot capture with draw / arrow / box / text annotation. |
 | Feedback agent | `agent/*` | An [eve.dev](https://eve.dev) agent mounted at `/eve/v1/*` by `withEve()` in `next.config.ts`. It verifies the Auth.js cookie, chats, and files feedback through `POST /api/internal/feedback`. |
 | Admin | `app/(app)/admin/*` | Feedback list and detail (status, notes, screenshot). Learners: roster, completion, time per page, per-learner detail, reset progress, CSV export. Tables sort by column (`components/admin/SortableTable.tsx`). |
+| Course rating | `CourseRating` in `MakeItCount.tsx`, `saveRating` in `lib/db/queries.ts` | After marking complete, learners give 1–5 stars and an optional comment. Stored on `progress` and mirrored as a `rating`-type row on the Feedback page; average and comments show on Learners. |
 | Data | `lib/db/*`, `drizzle/` | Drizzle ORM. Local dev uses embedded Postgres (PGlite) in `./.data` with zero setup; production uses Neon via `DATABASE_URL`. |
 
 ## Run it locally
