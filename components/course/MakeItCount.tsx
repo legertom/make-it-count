@@ -721,7 +721,7 @@ export function MakeItCount({ user, initial, notice }: Props) {
                 something to compete on. If you're doing real work with Claude, you'll use a good chunk of it most
                 months. Some months you'll need more, and asking for more is a normal part of the job.
               </p>
-              <Nav page={page} go={go} note="About 9 minutes, start to finish" />
+              <Nav page={page} go={go} note="About 10 minutes, start to finish" />
             </>
           )}
 
@@ -1025,6 +1025,55 @@ export function MakeItCount({ user, initial, notice }: Props) {
                 This is a portfolio, not a ranking. If Gemini handles the task well, that's a good tool choice. If
                 Claude materially improves the work, that's also a good tool choice.
               </p>
+              <Nav page={page} go={go} label="More on Gemini" />
+            </>
+          )}
+
+          {K === "h4g" && (
+            <>
+              <p className="cb-kicker">Habit 4 &middot; where Gemini fits</p>
+              <h1>Where Gemini fits</h1>
+              <p className="cb-lede" style={{ marginTop: "0.9rem" }}>
+                Gemini is the other AI tool everyone at Clever has. Two things make it worth reaching for often: it's
+                fast, and it costs Clever nothing extra.
+              </p>
+              <div className="cb-facts">
+                <div className="cb-fact">
+                  <span className="cb-fact-k">Free to us</span>
+                  <span className="cb-fact-v">It comes with the Google Workspace we already pay for, so there's no budget to watch.</span>
+                </div>
+                <div className="cb-fact">
+                  <span className="cb-fact-k">Fast</span>
+                  <span className="cb-fact-v">Quick answers for quick work. Good when you need something in seconds, not minutes.</span>
+                </div>
+                <div className="cb-fact">
+                  <span className="cb-fact-k">Already in your tools</span>
+                  <span className="cb-fact-v">It works inside Gmail, Docs, Sheets, Slides, and Drive, right where the work already is.</span>
+                </div>
+              </div>
+
+              <h2>Jobs Gemini is good at</h2>
+              <div className="cb-uses">
+                <div className="cb-use"><b>Quick questions</b><span>&ldquo;What's a friendlier way to say this?&rdquo; &ldquo;What does this acronym mean?&rdquo;</span></div>
+                <div className="cb-use"><b>First drafts</b><span>A rough version of an email, a doc outline, or a slide you'll shape yourself.</span></div>
+                <div className="cb-use"><b>Lots of variations</b><span>Twenty subject lines, ten headline options, five ways to phrase a request.</span></div>
+                <div className="cb-use"><b>Summaries</b><span>A long email thread, a meeting transcript, or a doc boiled down to a few bullets.</span></div>
+                <div className="cb-use"><b>Brainstorming</b><span>Getting an idea into shape before it's ready for careful work.</span></div>
+                <div className="cb-use"><b>Help inside Google tools</b><span>Cleaning up a Sheet, drafting in Gmail, reorganizing a Doc, without switching apps.</span></div>
+              </div>
+              <p>
+                The pattern: routine work, quick turnarounds, and high volume. If the quality is there, Gemini is a
+                good tool choice for these, not a compromise.
+              </p>
+
+              <h2 style={{ marginTop: "1.8rem" }}>When to reach for Claude instead</h2>
+              <ul style={{ marginTop: "0.7rem" }}>
+                <li>Work that goes to a customer, a district, or leadership and has to be right.</li>
+                <li>Evidence that disagrees with itself, or a recommendation with real consequences.</li>
+                <li>Long, careful, multi-step work where you'll build on the answer for hours.</li>
+                <li>Anything Gemini already tried and didn't land.</li>
+              </ul>
+              <p className="cb-pull">Try Gemini first for quick, routine work. Bring in Claude when the thinking is the hard part.</p>
               <Nav page={page} go={go} label="The second dial" />
             </>
           )}

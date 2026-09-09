@@ -9,7 +9,7 @@ export const CHAPTERS: Chapter[] = [
   { name: "How context works", pages: ["model-what", "model-desk", "model-three"] },
   {
     name: "Five habits",
-    pages: ["habits-map", "h1", "h2", "h3a", "h3b", "h4a", "h4b", "h4c", "h5"],
+    pages: ["habits-map", "h1", "h2", "h3a", "h3b", "h4a", "h4g", "h4b", "h4c", "h5"],
   },
   { name: "Spotting waste", pages: ["burn-challenge", "burn-checks"] },
   { name: "Requesting more", pages: ["more-why", "more-ask"] },
@@ -36,6 +36,7 @@ export const PAGE_TITLES: Record<string, string> = {
   h3a: "Habit 3 · Be specific (RACE)",
   h3b: "Habit 3 · Practice",
   h4a: "Habit 4 · Match the horsepower",
+  h4g: "Habit 4 · Where Gemini fits",
   h4b: "Habit 4 · The effort setting",
   h4c: "Habit 4 · Check for knowledge",
   h5: "Habit 5 · Clean handoff",
