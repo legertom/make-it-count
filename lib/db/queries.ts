@@ -128,6 +128,7 @@ export async function markComplete(email: string): Promise<ProgressRow> {
 
 const STARS = ["", "★☆☆☆☆", "★★☆☆☆", "★★★☆☆", "★★★★☆", "★★★★★"];
 
+/** Every rating is its own feedback row; progress keeps the latest for the roster. */
 export async function saveRating(input: {
   email: string;
   name: string | null;
@@ -136,36 +137,22 @@ export async function saveRating(input: {
 }) {
   const db = await getDb();
   const now = new Date();
-  const title = `${STARS[input.rating]} ${input.rating}/5 course rating`;
-  const description = input.comment ?? "(No written comment.)";
-
-  const existing = await getProgress(input.email);
-  let feedbackId = existing?.ratingFeedbackId ?? null;
-  if (feedbackId) {
-    const updated = await db
-      .update(feedback)
-      .set({ title, description, updatedAt: now })
-      .where(eq(feedback.id, feedbackId))
-      .returning({ id: feedback.id });
-    if (updated.length === 0) feedbackId = null;
-  }
-  if (!feedbackId) {
-    const rows = await db
-      .insert(feedback)
-      .values({
-        id: newId("fb"),
-        type: "rating",
-        title,
-        description,
-        page: "/course/done",
-        coursePage: "done",
-        submittedBy: input.email,
-        submitterName: input.name,
-        source: "rating",
-      })
-      .returning({ id: feedback.id });
-    feedbackId = rows[0].id;
-  }
+  const rows = await db
+    .insert(feedback)
+    .values({
+      id: newId("fb"),
+      type: "rating",
+      rating: input.rating,
+      title: `${STARS[input.rating]} ${input.rating}/5 course rating`,
+      description: input.comment ?? "(No written comment.)",
+      page: "/course/done",
+      coursePage: "done",
+      submittedBy: input.email,
+      submitterName: input.name,
+      source: "rating",
+    })
+    .returning({ id: feedback.id });
+  const feedbackId = rows[0].id;
 
   await db
     .insert(progress)
@@ -190,6 +177,7 @@ export async function saveRating(input: {
 }
 
 export type RatingRow = {
+  id: string;
   email: string;
   name: string | null;
   rating: number;
@@ -197,24 +185,33 @@ export type RatingRow = {
   ratedAt: Date;
 };
 
-/** Every course rating, newest first. */
+/** Every course rating ever left, newest first. */
 export async function listRatings(): Promise<RatingRow[]> {
   const db = await getDb();
   const rows = await db
     .select({
-      email: progress.email,
+      id: feedback.id,
+      email: feedback.submittedBy,
       name: users.name,
-      rating: progress.rating,
-      comment: progress.ratingComment,
-      ratedAt: progress.ratedAt,
+      submitterName: feedback.submitterName,
+      rating: feedback.rating,
+      title: feedback.title,
+      comment: feedback.description,
+      ratedAt: feedback.createdAt,
     })
-    .from(progress)
-    .leftJoin(users, eq(users.email, progress.email))
-    .where(sql`${progress.rating} is not null`)
-    .orderBy(desc(progress.ratedAt));
-  return rows
-    .filter((r): r is typeof r & { rating: number; ratedAt: Date } => r.rating !== null && r.ratedAt !== null)
-    .map((r) => ({ email: r.email, name: r.name, rating: r.rating, comment: r.comment, ratedAt: r.ratedAt }));
+    .from(feedback)
+    .leftJoin(users, eq(users.email, feedback.submittedBy))
+    .where(eq(feedback.type, "rating"))
+    .orderBy(desc(feedback.createdAt));
+  return rows.map((r) => ({
+    id: r.id,
+    email: r.email,
+    name: r.name ?? r.submitterName,
+    // Rows written before the rating column existed carry the stars in the title.
+    rating: r.rating ?? Number(/(\d)\/5/.exec(r.title)?.[1] ?? 0),
+    comment: r.comment === "(No written comment.)" ? null : r.comment,
+    ratedAt: r.ratedAt,
+  }));
 }
 
 export async function clearCompletion(email: string) {
@@ -225,7 +222,7 @@ export async function clearCompletion(email: string) {
     .where(eq(progress.email, email));
 }
 
-/** Admin: wipe a learner's progress and timing, keeping a count of resets. */
+/** Admin: wipe a learner's progress and timing. Ratings are kept; we love feedback. */
 export async function resetProgress(email: string) {
   const db = await getDb();
   await db.delete(pageViews).where(eq(pageViews.email, email));
@@ -240,10 +237,6 @@ export async function resetProgress(email: string) {
       startedAt: now,
       updatedAt: now,
       completedAt: null,
-      rating: null,
-      ratingComment: null,
-      ratedAt: null,
-      ratingFeedbackId: null,
       resetCount: sql`${progress.resetCount} + 1`,
     })
     .where(eq(progress.email, email));

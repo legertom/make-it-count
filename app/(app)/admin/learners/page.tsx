@@ -134,15 +134,15 @@ export default async function LearnersPage() {
 
       <h2>What people said</h2>
       <p className="adm-lede" style={{ fontSize: "0.88rem" }}>
-        The star rating and comment each learner leaves after marking the course complete. Ratings also appear on
-        the Feedback page under the &ldquo;Rating&rdquo; type.
+        Every rating and comment learners have left after finishing, newest first. People can leave more than one,
+        and they survive an admin reset. Each also appears on the Feedback page under the &ldquo;Rating&rdquo; type.
       </p>
       {ratings.length === 0 ? (
         <p className="adm-empty" style={{ border: "1px solid var(--line)", borderRadius: 12 }}>No ratings yet.</p>
       ) : (
         <div className="adm-ratings">
           {ratings.map((r) => (
-            <div key={r.email} className="adm-rating">
+            <div key={r.id} className="adm-rating">
               <div className="adm-rating-head">
                 <Stars n={r.rating} />
                 <Link href={`/admin/learners/${encodeURIComponent(r.email)}`}>{r.name || r.email}</Link>

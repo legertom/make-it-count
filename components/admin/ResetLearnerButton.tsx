@@ -13,7 +13,7 @@ export function ResetLearnerButton({ email, name, compact = false }: { email: st
       style={compact ? { color: "var(--bad)" } : undefined}
       disabled={pending}
       onClick={() => {
-        if (window.confirm(`Reset ${who}'s progress?\n\nThis clears their current page, answers, completion, and page timings. Their sign-in history is kept.`)) {
+        if (window.confirm(`Reset ${who}'s progress?\n\nThis clears their current page, answers, completion, and page timings. Their sign-in history and any ratings are kept.`)) {
           start(() => resetLearnerAction(email));
         }
       }}

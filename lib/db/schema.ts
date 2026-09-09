@@ -91,6 +91,8 @@ export const feedback = pgTable(
     }),
     /** `agent` (via the eve chat), `form` (direct submit), or `rating` (end-of-course stars). */
     source: text("source").notNull().default("agent"),
+    /** 1-5 stars for `rating`-type rows. */
+    rating: integer("rating"),
     agentSessionId: text("agent_session_id"),
     adminNotes: text("admin_notes"),
     createdAt: tsNow("created_at"),

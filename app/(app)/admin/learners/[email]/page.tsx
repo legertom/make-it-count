@@ -95,12 +95,12 @@ export default async function LearnerDetailPage({ params }: PageProps<"/admin/le
           <div className="adm-card">
             <h3>Reset progress</h3>
             <p style={{ margin: "0 0 0.6rem", fontSize: "0.88rem", color: "var(--ink-2)" }}>
-              Clears their page, answers, completion, and timings so they start fresh. Sign-in history stays.
+              Clears their page, answers, completion, and timings so they start fresh. Sign-in history and ratings stay.
             </p>
             <ResetLearnerButton email={l.email} name={l.name} />
           </div>
           <div className="adm-card">
-            <h3>Course rating</h3>
+            <h3>Latest course rating</h3>
             {l.rating ? (
               <>
                 <p style={{ margin: "0 0 0.4rem", fontSize: "1.2rem", letterSpacing: "0.05em", color: "#F5B400" }} aria-label={`${l.rating} out of 5 stars`}>

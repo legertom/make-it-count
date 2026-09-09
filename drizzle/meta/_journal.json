@@ -15,6 +15,13 @@
       "when": 1788916984571,
       "tag": "0001_ratings",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788917357725,
+      "tag": "0002_feedback_rating",
+      "breakpoints": true
     }
   ]
 }

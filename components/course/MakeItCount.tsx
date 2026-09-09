@@ -405,6 +405,12 @@ function CourseRating({ initialRating, initialComment }: { initialRating: number
       }
     });
 
+  const startAnother = () => {
+    setComment("");
+    setHover(0);
+    setEditing(true);
+  };
+
   const shown = hover || rating;
 
   if (!editing && saved) {
@@ -412,8 +418,8 @@ function CourseRating({ initialRating, initialComment }: { initialRating: number
       <div className="cb-rating" data-state="done">
         <div className="cb-rating-head">
           <h3>Thanks for the feedback</h3>
-          <button type="button" className="cb-linkbtn" onClick={() => setEditing(true)}>
-            Change it
+          <button type="button" className="cb-linkbtn" onClick={startAnother}>
+            Leave more feedback
           </button>
         </div>
         <div className="cb-stars" aria-label={`${saved.rating} out of 5 stars`}>
@@ -429,9 +435,11 @@ function CourseRating({ initialRating, initialComment }: { initialRating: number
 
   return (
     <div className="cb-rating">
-      <h3>One last thing: how was it?</h3>
+      <h3>{saved ? "More to tell us?" : "One last thing: how was it?"}</h3>
       <p style={{ margin: "0.35rem 0 0", fontSize: "0.95rem" }}>
-        Rate the course and tell us what you'd change. It goes straight to the people who maintain it.
+        {saved
+          ? "Every note helps. Rate it again if your view has changed, and tell us what's on your mind."
+          : "Rate the course and tell us what you'd change. It goes straight to the people who maintain it."}
       </p>
       <div className="cb-stars" role="radiogroup" aria-label="Rate the course from 1 to 5 stars" onMouseLeave={() => setHover(0)}>
         {[1, 2, 3, 4, 5].map((n) => (
