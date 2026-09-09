@@ -1060,11 +1060,36 @@ export function MakeItCount({ user, initial, notice }: Props) {
                 <div className="cb-use"><b>Summaries</b><span>A long email thread, a meeting transcript, or a doc boiled down to a few bullets.</span></div>
                 <div className="cb-use"><b>Brainstorming</b><span>Getting an idea into shape before it's ready for careful work.</span></div>
                 <div className="cb-use"><b>Help inside Google tools</b><span>Cleaning up a Sheet, drafting in Gmail, reorganizing a Doc, without switching apps.</span></div>
+                <div className="cb-use"><b>Images and video</b><span>A quick visual for a deck or a post. Gemini makes images and short videos; Claude doesn't.</span></div>
+                <div className="cb-use"><b>Gems for repeat jobs</b><span>Save a Gem with your standing instructions, the way you'd use a Project in Claude, and reuse it.</span></div>
               </div>
               <p>
                 The pattern: routine work, quick turnarounds, and high volume. If the quality is there, Gemini is a
                 good tool choice for these, not a compromise.
               </p>
+
+              <h2 style={{ marginTop: "1.8rem" }}>Gemini has a dial too</h2>
+              <p style={{ marginTop: "0.6rem" }}>
+                The picker next to the message box works like Claude's model menu. Since Gemini costs us nothing, the
+                only price of a higher setting is a little more waiting.
+              </p>
+              <div className="cb-dial" role="list" aria-label="Gemini modes">
+                <div className="cb-tool" role="listitem" style={{ cursor: "default" }}>
+                  <span className="cb-tool-n">Flash</span>
+                  <span className="cb-tool-r">Fastest</span>
+                  <span className="cb-tool-d">All-around help. The right default for quick questions, drafts, and variations.</span>
+                </div>
+                <div className="cb-tool" role="listitem" style={{ cursor: "default" }}>
+                  <span className="cb-tool-n">Thinking</span>
+                  <span className="cb-tool-r">Slower</span>
+                  <span className="cb-tool-d">Works through a problem before answering. Use it when a quick answer keeps missing.</span>
+                </div>
+                <div className="cb-tool" role="listitem" style={{ cursor: "default" }}>
+                  <span className="cb-tool-n">Pro</span>
+                  <span className="cb-tool-r">Slowest</span>
+                  <span className="cb-tool-d">Advanced reasoning. Worth a try on harder work before you spend Claude budget on it.</span>
+                </div>
+              </div>
 
               <h2 style={{ marginTop: "1.8rem" }}>When to reach for Claude instead</h2>
               <ul style={{ marginTop: "0.7rem" }}>
