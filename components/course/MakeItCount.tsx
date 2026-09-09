@@ -1222,14 +1222,16 @@ export function MakeItCount({ user, initial, notice }: Props) {
               </div>
               <h2 style={{ marginTop: "2rem" }}>If you're curious about your own usage</h2>
               <p style={{ marginTop: "0.6rem" }}>
-                Claude has a usage view under <strong>Settings &rarr; Usage</strong>. It shows your own usage and how
-                you're tracking against any spend limit set for you.
+                In the Claude app, go to <strong>Settings &rarr; Usage</strong>. It shows your own usage and how
+                you're tracking against any spend limit set for you. That's the one place to look whether you use
+                Claude in the browser, the desktop app, or Cowork.
               </p>
               <div className="cb-tip">
-                <b>Quick tip: the <code>/usage</code> command</b>
+                <b>Using Claude Code? Type <code>/usage</code></b>
                 <p>
-                  Type <code>/usage</code> into the message box for a fast snapshot of where you stand, without leaving
-                  the conversation.
+                  Claude Code has its own shortcut. Type <code>/usage</code> at the prompt for a snapshot of your plan
+                  limits and current session, without leaving the terminal. It's a Claude Code command only; the
+                  chat app doesn't have slash commands.
                 </p>
               </div>
               <p>
