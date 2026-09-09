@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SortableTable, type SortableRow } from "@/components/admin/SortableTable";
 import { StatusSelect, STATUS_LABELS } from "@/components/admin/StatusSelect";
 import { FEEDBACK_STATUSES, FEEDBACK_TYPES, type FeedbackStatus, type FeedbackType } from "@/lib/db/schema";
 import { feedbackCounts, listFeedback } from "@/lib/db/queries";
@@ -30,6 +31,29 @@ export default async function AdminFeedbackPage({ searchParams }: PageProps<"/ad
     return { pathname: "/admin" as const, query: q };
   };
 
+  const STATUS_ORDER: Record<string, number> = { new: 0, triaged: 1, in_progress: 2, done: 3, wont_fix: 4 };
+  const feedbackRows: SortableRow[] = rows.map((r) => ({
+    id: r.id,
+    sort: {
+      when: r.createdAt.getTime(),
+      type: r.type,
+      title: r.title.toLowerCase(),
+      from: (r.submitterName || r.submittedBy).toLowerCase(),
+      where: r.coursePage ? pageTitle(r.coursePage) : r.page ?? "",
+      shot: r.screenshotId ? 1 : 0,
+      status: STATUS_ORDER[r.status] ?? 9,
+    },
+    cells: [
+      <span key="w" className="nowrap muted">{fmtDate(r.createdAt, true)}</span>,
+      <span key="t" className="badge" data-type={r.type}>{TYPE_LABELS[r.type]}</span>,
+      <Link key="l" href={`/admin/feedback/${r.id}`}>{r.title}</Link>,
+      <span key="f">{r.submitterName || r.submittedBy}<br /><small className="muted">{r.submitterName ? r.submittedBy : ""}</small></span>,
+      <span key="p" className="muted">{r.coursePage ? pageTitle(r.coursePage) : r.page ?? ""}</span>,
+      <span key="s" className="muted">{r.screenshotId ? "Yes" : ""}</span>,
+      <StatusSelect key="st" id={r.id} value={r.status} />,
+    ],
+  }));
+
   return (
     <>
       <h1>Feedback</h1>
@@ -56,37 +80,19 @@ export default async function AdminFeedbackPage({ searchParams }: PageProps<"/ad
         ))}
       </div>
 
-      <div className="adm-tablewrap">
-        <table className="adm-table">
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>Type</th>
-              <th>Title</th>
-              <th>From</th>
-              <th>Where</th>
-              <th>Shot</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 && (
-              <tr><td colSpan={7} className="adm-empty">Nothing here yet.</td></tr>
-            )}
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td className="nowrap muted">{fmtDate(r.createdAt, true)}</td>
-                <td><span className="badge" data-type={r.type}>{TYPE_LABELS[r.type]}</span></td>
-                <td><Link href={`/admin/feedback/${r.id}`}>{r.title}</Link></td>
-                <td>{r.submitterName || r.submittedBy}<br /><small className="muted">{r.submitterName ? r.submittedBy : ""}</small></td>
-                <td className="muted">{r.coursePage ? pageTitle(r.coursePage) : r.page ?? ""}</td>
-                <td className="muted">{r.screenshotId ? "Yes" : ""}</td>
-                <td><StatusSelect id={r.id} value={r.status} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <SortableTable
+        columns={[
+          { key: "when", label: "When", defaultDir: "desc" },
+          { key: "type", label: "Type" },
+          { key: "title", label: "Title" },
+          { key: "from", label: "From" },
+          { key: "where", label: "Where" },
+          { key: "shot", label: "Shot", defaultDir: "desc" },
+          { key: "status", label: "Status" },
+        ]}
+        rows={feedbackRows}
+        initialSort={{ key: "when", dir: "desc" }}
+      />
     </>
   );
 }

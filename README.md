@@ -8,11 +8,11 @@ progress.
 
 | Area | Where | Notes |
 | --- | --- | --- |
-| Course | `components/course/MakeItCount.tsx`, `lib/course-pages.ts` | Ported from the original prototype. Progress and answers sync to the database, so learners resume across devices. |
+| Course | `components/course/MakeItCount.tsx`, `lib/course-pages.ts`, `app/(app)/course/` | Ported from the original prototype. Every page has its own URL (`/course/h4g`), and `/` redirects to wherever the learner left off. The component is mounted from the `course` layout so answers survive page-to-page navigation; progress and answers also sync to the database, so learners resume across devices. |
 | Sign-in | `auth.config.ts`, `auth.ts`, `proxy.ts`, `app/login` | Auth.js with Google. Only verified `@clever.com` accounts get in. Admins come from `ADMIN_EMAILS`. |
 | Feedback widget | `components/feedback/*` | Floating button → chat with the eve agent, or a direct form. Screenshot capture with draw / arrow / box / text annotation. |
 | Feedback agent | `agent/*` | An [eve.dev](https://eve.dev) agent mounted at `/eve/v1/*` by `withEve()` in `next.config.ts`. It verifies the Auth.js cookie, chats, and files feedback through `POST /api/internal/feedback`. |
-| Admin | `app/(app)/admin/*` | Feedback list and detail (status, notes, screenshot). Learners: roster, completion, time per page, per-learner detail, reset progress, CSV export. |
+| Admin | `app/(app)/admin/*` | Feedback list and detail (status, notes, screenshot). Learners: roster, completion, time per page, per-learner detail, reset progress, CSV export. Tables sort by column (`components/admin/SortableTable.tsx`). |
 | Data | `lib/db/*`, `drizzle/` | Drizzle ORM. Local dev uses embedded Postgres (PGlite) in `./.data` with zero setup; production uses Neon via `DATABASE_URL`. |
 
 ## Run it locally

@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { ArrowRight, Check, Copy, Minus } from "lucide-react";
-import { CHAPTERS, PAGES, PAGE_COUNT } from "@/lib/course-pages";
+import { CHAPTERS, PAGES, PAGE_COUNT, pageIndex, pageUrl } from "@/lib/course-pages";
 import { fmtDate, initials } from "@/lib/format";
 import { clearCompletionAction, markCompleteAction, signOutAction } from "@/app/(app)/actions";
 
@@ -52,12 +53,10 @@ type User = { email: string; name: string | null; image: string | null; isAdmin:
 type Props = {
   user: User;
   initial: {
-    page: number;
     furthestIndex: number;
     answers: Partial<CourseAnswers>;
     completedAt: string | null;
   };
-  notice: string | null;
 };
 
 type Option = { key: string; label: string; correct: boolean; feedback: string };
@@ -506,9 +505,13 @@ const clampPage = (n: number) => Math.max(0, Math.min(PAGE_COUNT - 1, n));
 /*  Main                                                               */
 /* ------------------------------------------------------------------ */
 
-export function MakeItCount({ user, initial, notice }: Props) {
-  const [page, setPage] = useState(clampPage(initial.page));
-  const [a, setA] = useState<CourseAnswers>({ ...INITIAL, ...initial.answers });
+export function MakeItCount({ user, initial }: Props) {
+  const router = useRouter();
+  const params = useParams<{ page?: string }>();
+  const searchParams = useSearchParams();
+  const page = pageIndex(params.page ?? "why-frame");
+  const notice = searchParams.get("denied") === "admin" ? "That page is for course admins only." : null;
+  const [a, setA] = useState<CourseAnswers>(() => ({ ...INITIAL, ...initial.answers }));
   const patch = (p: Partial<CourseAnswers>) => setA((x) => ({ ...x, ...p }));
 
   /* ---- learner telemetry: page timing + progress sync ---- */
@@ -517,7 +520,7 @@ export function MakeItCount({ user, initial, notice }: Props) {
     answersRef.current = a;
   }, [a]);
   const pageRef = useRef(page);
-  const furthestRef = useRef(Math.max(initial.furthestIndex, clampPage(initial.page)));
+  const furthestRef = useRef(Math.max(initial.furthestIndex, page));
   const enteredRef = useRef(0);
   const activeRef = useRef(0);
   const visibleRef = useRef(true);
@@ -579,6 +582,23 @@ export function MakeItCount({ user, initial, notice }: Props) {
     };
   }, [post]);
 
+  // Back/forward or a typed URL changes the page without going through go():
+  // record the page we left and move the timer along.
+  useEffect(() => {
+    if (pageRef.current === page) return;
+    const furthest = Math.max(furthestRef.current, page);
+    post({
+      leftPage: PAGES[pageRef.current].key,
+      activeMs: activeSoFar(),
+      currentPage: PAGES[page].key,
+      furthestIndex: furthest,
+      answers: answersRef.current,
+    });
+    resetTimer();
+    furthestRef.current = furthest;
+    pageRef.current = page;
+  }, [page, post]);
+
   const cur = PAGES[page];
 
   useEffect(() => {
@@ -612,8 +632,8 @@ export function MakeItCount({ user, initial, notice }: Props) {
       resetTimer();
       furthestRef.current = furthest;
       pageRef.current = next;
+      router.push(pageUrl(PAGES[next].key));
     }
-    setPage(next);
     scrollTop();
   };
 
@@ -636,10 +656,10 @@ export function MakeItCount({ user, initial, notice }: Props) {
     <div className="cb">
       <header className="cb-top">
         <div className="cb-top-in">
-          <div className="cb-brand">
+          <Link href="/" className="cb-brand" aria-label="Make It Count home">
             <span className="cb-brand-name">Make It Count</span>
             <span className="cb-brand-sub">Using AI where it pays off.</span>
-          </div>
+          </Link>
           <div className="mic-user">
             {user.isAdmin && (
               <Link className="mic-user-link" href="/admin">

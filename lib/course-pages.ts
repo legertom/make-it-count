@@ -63,3 +63,11 @@ export function chapterOf(key: string): string {
   const p = PAGES.find((x) => x.key === key);
   return p ? CHAPTERS[p.ci].name : "";
 }
+
+export function isPageKey(key: string): boolean {
+  return PAGES.some((p) => p.key === key);
+}
+
+export function pageUrl(key: string): string {
+  return `/course/${key}`;
+}

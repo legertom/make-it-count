@@ -16,7 +16,9 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <div className="adm">
       <header className="adm-top">
-        <span className="cb-brand-name">Make It Count</span>
+        <Link href="/" className="cb-brand-name" style={{ textDecoration: "none", color: "inherit" }}>
+          Make It Count
+        </Link>
         <span className="cb-brand-sub">Admin</span>
         <AdminNav />
         <span style={{ marginLeft: "auto", display: "flex", gap: "0.5rem", alignItems: "center" }}>

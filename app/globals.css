@@ -88,7 +88,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   padding: 0.7rem clamp(1rem, 4vw, 2.5rem);
   display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
 }
-.cb-brand { display: flex; align-items: baseline; gap: 0.6rem; margin-right: auto; }
+.cb-brand { display: flex; align-items: baseline; gap: 0.6rem; margin-right: auto; text-decoration: none; color: inherit; }
+.cb-brand:hover .cb-brand-name { color: var(--blue); }
 .cb-brand-name { font-weight: 660; letter-spacing: -0.02em; font-size: 1.02rem; }
 .cb-brand-sub { color: var(--ink-3); font-size: 0.8rem; }
 
@@ -634,3 +635,14 @@ textarea.mic-input { resize: vertical; min-height: 5.5rem; line-height: 1.45; }
 .adm-person small { display: block; color: var(--ink-3); font-weight: 400; }
 .adm-answers { font-family: var(--mono); font-size: 0.78rem; background: var(--panel); border: 1px solid var(--line-soft); border-radius: 10px; padding: 0.8rem; white-space: pre-wrap; max-height: 24rem; overflow: auto; margin: 0; }
 .adm-saved { font-size: 0.82rem; color: var(--good); }
+
+/* sortable table headers */
+.adm-sort {
+  background: none; border: 0; padding: 0; cursor: pointer; font: inherit; color: inherit;
+  text-transform: inherit; letter-spacing: inherit; display: inline-flex; align-items: center; gap: 0.2rem;
+}
+.adm-sort:hover { color: var(--ink); }
+.adm-sort[data-active="true"] { color: var(--ink); }
+.adm-sort-icon { display: inline-flex; opacity: 0.35; }
+.adm-sort[data-active="true"] .adm-sort-icon { opacity: 1; color: var(--blue); }
+.adm-table th.num .adm-sort { justify-content: flex-end; width: 100%; }
