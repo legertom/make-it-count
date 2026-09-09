@@ -43,23 +43,22 @@ async function uploadScreenshot(cap: Capture, dataUrl: string): Promise<string> 
 function ToolLine({ part }: { part: Extract<EveMessagePart, { type: "dynamic-tool" }> }) {
   if (part.toolName !== "submit_feedback") return null;
   if (part.state === "output-available") {
-    const out = part.output as { id?: string } | undefined;
     return (
       <div className="fb-tool" data-state="done">
-        <Check size={13} /> Filed{out?.id ? ` as ${out.id}` : ""}
+        <Check size={13} /> Saved for the admins
       </div>
     );
   }
   if (part.state === "output-error") {
     return (
       <div className="fb-tool" data-state="error">
-        Couldn't file it: {part.errorText ?? "unknown error"}
+        Couldn't save it: {part.errorText ?? "unknown error"}
       </div>
     );
   }
   return (
     <div className="fb-tool">
-      <span className="fb-spin" /> Filing feedback…
+      <span className="fb-spin" /> Saving your feedback…
     </div>
   );
 }

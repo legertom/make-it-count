@@ -28,8 +28,17 @@ export default defineTool({
       .describe("The shot_... id from a '[Screenshot attached: ...]' marker in the conversation."),
   }),
   label: {
-    start: ({ type, title }) => `File ${type}: ${title}`,
-    complete: (_input, output) => `Filed as ${output.id}`,
+    start: ({ type, title }) => `Save ${type}: ${title}`,
+    complete: () => "Saved for the admins",
+  },
+  // The model only needs to know it worked; the id stays out of the conversation.
+  toModelOutput(output) {
+    return {
+      type: "text" as const,
+      value: output.screenshotAttached
+        ? "Saved for the admins, with the screenshot attached."
+        : "Saved for the admins.",
+    };
   },
   async execute(input, ctx) {
     const principal = ctx.session.auth.current ?? ctx.session.auth.initiator;
