@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
+import { AdminToggle } from "@/components/admin/AdminToggle";
 import { ResetLearnerButton } from "@/components/admin/ResetLearnerButton";
+import { isAdminEmail, normalizeEmail } from "@/lib/access";
 import { PAGES, pageTitle } from "@/lib/course-pages";
 import { getLearner, getProgress, learnerPageTimes, pageStats } from "@/lib/db/queries";
 import { fmtDate, fmtDuration, initials } from "@/lib/format";
@@ -11,13 +14,16 @@ export const dynamic = "force-dynamic";
 export default async function LearnerDetailPage({ params }: PageProps<"/admin/learners/[email]">) {
   const { email: raw } = await params;
   const email = decodeURIComponent(raw).toLowerCase();
-  const [l, times, stats, progress] = await Promise.all([
+  const [session, l, times, stats, progress] = await Promise.all([
+    auth(),
     getLearner(email),
     learnerPageTimes(email),
     pageStats(),
     getProgress(email),
   ]);
   if (!l) notFound();
+  const me = normalizeEmail(session?.user?.email) ?? "";
+  const admin = l.isAdmin || isAdminEmail(l.email);
 
   const p = progressLabel(l);
   const byKey = new Map(times.map((t) => [t.pageKey, t]));
@@ -37,6 +43,7 @@ export default async function LearnerDetailPage({ params }: PageProps<"/admin/le
           )}
         </span>
         {l.name || l.email}
+        {admin && <span className="badge" data-role="admin">Admin</span>}
       </h1>
       <p className="adm-lede">{l.email}</p>
 
@@ -92,6 +99,13 @@ export default async function LearnerDetailPage({ params }: PageProps<"/admin/le
           </div>
         </div>
         <div>
+          <div className="adm-card">
+            <h3>Role</h3>
+            <p style={{ margin: "0 0 0.6rem", fontSize: "0.88rem", color: "var(--ink-2)" }}>
+              {admin ? "Admin: sees all feedback and learner progress, and can manage admins." : "Learner."}
+            </p>
+            <AdminToggle email={l.email} name={l.name} isAdmin={admin} isConfigAdmin={isAdminEmail(l.email)} isSelf={l.email === me} />
+          </div>
           <div className="adm-card">
             <h3>Reset progress</h3>
             <p style={{ margin: "0 0 0.6rem", fontSize: "0.88rem", color: "var(--ink-2)" }}>

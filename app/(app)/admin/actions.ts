@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { FEEDBACK_STATUSES, type FeedbackStatus } from "@/lib/db/schema";
-import { resetProgress, updateFeedback } from "@/lib/db/queries";
+import { resetProgress, setAdmin, updateFeedback } from "@/lib/db/queries";
+import { isAdminEmail, isAllowedEmail, normalizeEmail } from "@/lib/access";
 
 async function requireAdmin() {
   const session = await auth();
@@ -30,4 +31,18 @@ export async function resetLearnerAction(email: string) {
   await resetProgress(email.toLowerCase());
   revalidatePath("/admin/learners");
   revalidatePath(`/admin/learners/${encodeURIComponent(email)}`);
+}
+
+export async function setAdminAction(email: string, makeAdmin: boolean) {
+  const session = await requireAdmin();
+  const target = normalizeEmail(email);
+  if (!target || !isAllowedEmail(target)) throw new Error("Admins must have a Clever address.");
+  const me = normalizeEmail(session.user.email);
+  if (!makeAdmin && target === me) throw new Error("You can't remove your own admin access.");
+  if (!makeAdmin && isAdminEmail(target)) {
+    throw new Error("That admin is set in the ADMIN_EMAILS configuration and can't be removed here.");
+  }
+  await setAdmin(target, makeAdmin);
+  revalidatePath("/admin/learners");
+  revalidatePath(`/admin/learners/${encodeURIComponent(target)}`);
 }

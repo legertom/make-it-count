@@ -5,7 +5,9 @@ import { authConfig } from "./auth.config";
 const { auth } = NextAuth(authConfig);
 
 /**
- * Gate every page behind sign-in, and /admin behind the admin role.
+ * Gate every page behind sign-in. The admin role is enforced where the
+ * database is available (admin layout, server actions, CSV route), because
+ * admins can be promoted from the UI, not only from ADMIN_EMAILS.
  * The eve agent routes (/eve/*) run their own auth walk, so they're excluded
  * from the matcher below.
  */
@@ -24,10 +26,6 @@ export default auth((req) => {
     const url = new URL("/login", origin);
     if (pathname !== "/") url.searchParams.set("callbackUrl", pathname + search);
     return NextResponse.redirect(url);
-  }
-
-  if (pathname.startsWith("/admin") && !req.auth?.user?.isAdmin) {
-    return NextResponse.redirect(new URL("/?denied=admin", origin));
   }
 
   return NextResponse.next();

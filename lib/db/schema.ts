@@ -1,4 +1,4 @@
-import { index, integer, jsonb, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 const tsNow = (name: string) => timestamp(name, { withTimezone: true }).defaultNow().notNull();
 
@@ -12,6 +12,8 @@ export const users = pgTable("users", {
   /** Bumped every time the learner's browser reports progress. */
   lastSeenAt: tsNow("last_seen_at"),
   loginCount: integer("login_count").notNull().default(1),
+  /** Promoted from the admin UI. ADMIN_EMAILS in the environment grants admin too. */
+  isAdmin: boolean("is_admin").notNull().default(false),
 });
 
 /** Where each learner is in the course, plus their answers. One row per person. */

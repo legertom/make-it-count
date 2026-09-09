@@ -50,6 +50,23 @@ export async function markSeen(input: { email: string; name: string | null; imag
     });
 }
 
+/** Database-granted admin flag (config admins are checked separately). */
+export async function isDbAdmin(email: string): Promise<boolean> {
+  const db = await getDb();
+  const rows = await db.select({ isAdmin: users.isAdmin }).from(users).where(eq(users.email, email)).limit(1);
+  return rows[0]?.isAdmin ?? false;
+}
+
+/** Promote or demote. Creates the user row if they haven't signed in yet. */
+export async function setAdmin(email: string, isAdmin: boolean) {
+  const db = await getDb();
+  const now = new Date();
+  await db
+    .insert(users)
+    .values({ email, isAdmin, createdAt: now, lastLoginAt: now, lastSeenAt: now, loginCount: 0 })
+    .onConflictDoUpdate({ target: users.email, set: { isAdmin } });
+}
+
 /* ------------------------------------------------------------------ */
 /*  Progress + page timing                                             */
 /* ------------------------------------------------------------------ */
@@ -250,6 +267,7 @@ export type LearnerRow = {
   lastLoginAt: Date;
   lastSeenAt: Date;
   loginCount: number;
+  isAdmin: boolean;
   currentPage: string | null;
   furthestIndex: number | null;
   furthestPage: string | null;
@@ -285,6 +303,7 @@ export async function listLearners(): Promise<LearnerRow[]> {
       lastLoginAt: users.lastLoginAt,
       lastSeenAt: users.lastSeenAt,
       loginCount: users.loginCount,
+      isAdmin: users.isAdmin,
       currentPage: progress.currentPage,
       furthestIndex: progress.furthestIndex,
       furthestPage: progress.furthestPage,

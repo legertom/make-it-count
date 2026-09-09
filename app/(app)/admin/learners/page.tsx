@@ -1,7 +1,11 @@
 import Link from "next/link";
+import { auth } from "@/auth";
+import { AddAdminForm } from "@/components/admin/AddAdminForm";
+import { AdminToggle } from "@/components/admin/AdminToggle";
 import { ResetLearnerButton } from "@/components/admin/ResetLearnerButton";
 import { LearnerRoster } from "@/components/admin/LearnerRoster";
 import { SortableTable, type SortableRow } from "@/components/admin/SortableTable";
+import { adminEmails, isAdminEmail, normalizeEmail } from "@/lib/access";
 import { pageTitle } from "@/lib/course-pages";
 import { listLearners, listRatings, pageStats } from "@/lib/db/queries";
 import { fmtDate, fmtDuration, initials, timeAgo } from "@/lib/format";
@@ -10,9 +14,19 @@ import { elapsedMs, overview, pageRows, progressLabel } from "@/lib/learning-sta
 export const dynamic = "force-dynamic";
 
 export default async function LearnersPage() {
-  const [learners, stats, ratings] = await Promise.all([listLearners(), pageStats(), listRatings()]);
+  const [session, learners, stats, ratings] = await Promise.all([auth(), listLearners(), pageStats(), listRatings()]);
+  const me = normalizeEmail(session?.user?.email) ?? "";
   const o = overview(learners);
   const pages = pageRows(learners, stats);
+
+  const isAdminOf = (l: { email: string; isAdmin: boolean }) => l.isAdmin || isAdminEmail(l.email);
+  const admins = [
+    ...learners.filter(isAdminOf).map((l) => ({ email: l.email, name: l.name, isAdmin: true, isConfigAdmin: isAdminEmail(l.email) })),
+    // Config admins who haven't signed in yet still count.
+    ...adminEmails()
+      .filter((e) => !learners.some((l) => l.email === e))
+      .map((e) => ({ email: e, name: null as string | null, isAdmin: true, isConfigAdmin: true })),
+  ].sort((a, b) => a.email.localeCompare(b.email));
 
   const rosterRows: SortableRow[] = learners.map((l) => {
     const p = progressLabel(l);
@@ -21,7 +35,7 @@ export default async function LearnersPage() {
     return {
       id: l.email,
       meta: {
-        text: `${l.name ?? ""} ${l.email}`.toLowerCase(),
+        text: `${l.name ?? ""} ${l.email} ${isAdminOf(l) ? "admin" : ""}`.toLowerCase(),
         status: l.completedAt ? "completed" : p.state === "active" ? "in_progress" : "not_started",
       },
       sort: {
@@ -46,6 +60,7 @@ export default async function LearnersPage() {
           </span>
           <span>
             {l.name || l.email}
+            {isAdminOf(l) && <span className="badge" data-role="admin" style={{ marginLeft: "0.4rem" }}>Admin</span>}
             {l.name && <small>{l.email}</small>}
           </span>
         </Link>,
@@ -76,7 +91,10 @@ export default async function LearnersPage() {
         </span>,
         <span key="la" className="nowrap muted" title={fmtDate(l.lastSeenAt, true)}>{timeAgo(l.lastSeenAt)}</span>,
         <span key="rt" className="nowrap" title={l.ratingComment ?? undefined}>{l.rating ? <Stars n={l.rating} /> : <span className="muted">—</span>}</span>,
-        <span key="r" className="nowrap">{l.startedAt && <ResetLearnerButton email={l.email} name={l.name} compact />}</span>,
+        <span key="r" className="nowrap adm-rowactions">
+          <AdminToggle email={l.email} name={l.name} isAdmin={isAdminOf(l)} isConfigAdmin={isAdminEmail(l.email)} isSelf={l.email === me} compact />
+          {l.startedAt && <ResetLearnerButton email={l.email} name={l.name} compact />}
+        </span>,
       ],
     };
   });
@@ -121,6 +139,28 @@ export default async function LearnersPage() {
         <div className="adm-stat"><b>{fmtDuration(o.avgElapsedMsToComplete)}</b><span>Avg elapsed to finish</span></div>
         <div className="adm-stat"><b>{o.activeLast7d}</b><span>Active in last 7 days</span></div>
         <div className="adm-stat"><b>{o.ratingCount ? `${o.avgRating.toFixed(1)} / 5` : "—"}</b><span>Avg rating ({o.ratingCount} rating{o.ratingCount === 1 ? "" : "s"})</span></div>
+      </div>
+
+      <h2>Admins</h2>
+      <p className="adm-lede" style={{ fontSize: "0.88rem" }}>
+        Admins see everything on these pages and can manage other admins. Promote anyone from the roster with the
+        shield button, or add an address here before they've signed in. Admins marked &ldquo;config&rdquo; come
+        from the <code>ADMIN_EMAILS</code> setting and can't be removed here.
+      </p>
+      <div className="adm-admins">
+        {admins.map((a) => (
+          <div key={a.email} className="adm-admin">
+            <span className="mic-avatar" aria-hidden="true">{initials(a.name, a.email)}</span>
+            <span className="adm-admin-name">
+              {a.name || a.email}
+              {a.name && <small>{a.email}</small>}
+            </span>
+            {a.isConfigAdmin && <span className="badge" data-status="wont_fix">config</span>}
+            {a.email === me && <span className="badge" data-status="new">you</span>}
+            <AdminToggle email={a.email} name={a.name} isAdmin isConfigAdmin={a.isConfigAdmin} isSelf={a.email === me} compact />
+          </div>
+        ))}
+        <AddAdminForm />
       </div>
 
       <h2>Roster</h2>
