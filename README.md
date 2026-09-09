@@ -55,19 +55,14 @@ Already configured on Vercel:
 
 - Neon Postgres (`make-it-count-db`) from the Marketplace, wired to production and preview as
   `DATABASE_URL`. `npm run build` runs migrations before `next build`.
-- `AUTH_SECRET`, `AUTH_TRUST_HOST`, `ALLOWED_EMAIL_DOMAIN`, `ADMIN_EMAILS`, `INTERNAL_API_SECRET`
-  for production and preview.
+- `AUTH_SECRET`, `AUTH_TRUST_HOST`, `ALLOWED_EMAIL_DOMAIN`, `ADMIN_EMAILS`, `INTERNAL_API_SECRET`,
+  `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` for production and preview. The Google OAuth client
+  lives in the `make-it-count` Google Cloud project with redirect URIs for the production URL and
+  `http://localhost:3000`.
 - The eve agent deploys as a Vercel service alongside the app; `withEve()` writes the routing.
   Its model calls go through Vercel AI Gateway using the project's OIDC token.
 
-Still to add before people can sign in:
-
-1. A Google OAuth client (Google Cloud Console → APIs & Services → Credentials → OAuth client,
-   Web application) with the redirect URI
-   `https://make-it-count-clever.vercel.app/api/auth/callback/google`.
-2. `vercel env add AUTH_GOOGLE_ID production` and `vercel env add AUTH_GOOGLE_SECRET production`
-   (repeat for `preview` if you want preview deploys to sign in), then redeploy.
-
+If the Google client is ever rotated, update both env vars with `vercel env update` and redeploy.
 Leave `AUTH_DEV_BYPASS` unset in production; the code ignores it there anyway.
 
 ## How the pieces talk to each other
