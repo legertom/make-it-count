@@ -21,6 +21,8 @@ export type SortableRow = {
   sort: Record<string, SortValue>;
   /** Pre-rendered cells in column order. */
   cells: ReactNode[];
+  /** Plain strings a wrapper can filter on (search text, status, ...). */
+  meta?: Record<string, string>;
   style?: React.CSSProperties;
 };
 

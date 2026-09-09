@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ResetLearnerButton } from "@/components/admin/ResetLearnerButton";
+import { LearnerRoster } from "@/components/admin/LearnerRoster";
 import { SortableTable, type SortableRow } from "@/components/admin/SortableTable";
 import { pageTitle } from "@/lib/course-pages";
 import { listLearners, listRatings, pageStats } from "@/lib/db/queries";
@@ -19,6 +20,10 @@ export default async function LearnersPage() {
     const statusRank = l.completedAt ? 2 : p.state === "active" ? 1 : 0;
     return {
       id: l.email,
+      meta: {
+        text: `${l.name ?? ""} ${l.email}`.toLowerCase(),
+        status: l.completedAt ? "completed" : p.state === "active" ? "in_progress" : "not_started",
+      },
       sort: {
         person: (l.name || l.email).toLowerCase(),
         progress: l.completedAt ? 1000 : (l.furthestIndex ?? -1),
@@ -114,7 +119,7 @@ export default async function LearnersPage() {
       <p className="adm-lede" style={{ fontSize: "0.88rem" }}>
         <a href="/admin/learners.csv">Download as CSV</a>
       </p>
-      <SortableTable
+      <LearnerRoster
         columns={[
           { key: "person", label: "Person" },
           { key: "progress", label: "Progress", defaultDir: "desc" },
@@ -128,8 +133,6 @@ export default async function LearnersPage() {
           { key: "actions", label: "", sortable: false },
         ]}
         rows={rosterRows}
-        initialSort={{ key: "lastActive", dir: "desc" }}
-        empty="Nobody has signed in yet."
       />
 
       <h2>What people said</h2>

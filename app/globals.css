@@ -675,3 +675,24 @@ textarea.mic-input { resize: vertical; min-height: 5.5rem; line-height: 1.45; }
 .adm-rating-head a:hover { text-decoration: underline; }
 .adm-rating p { margin: 0.45rem 0 0; font-size: 0.93rem; color: var(--ink-2); white-space: pre-wrap; }
 .badge[data-type="rating"] { background: #FFF6DB; color: #8A5A00; }
+
+/* learner roster toolbar */
+.adm-toolbar { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; margin: 0 0 0.7rem; }
+.adm-search {
+  display: inline-flex; align-items: center; gap: 0.4rem; border: 1px solid var(--line); border-radius: 10px;
+  padding: 0.35rem 0.6rem; background: var(--paper); color: var(--ink-3); min-width: 16rem;
+}
+.adm-search:focus-within { border-color: var(--blue); }
+.adm-search input { border: 0; outline: 0; font: inherit; font-size: 0.9rem; color: var(--ink); background: transparent; flex: 1; min-width: 0; }
+.adm-search input::placeholder { color: var(--ink-3); }
+.adm-search input::-webkit-search-cancel-button { display: none; }
+.adm-search button { background: none; border: 0; cursor: pointer; color: var(--ink-3); padding: 0.1rem; display: inline-flex; }
+.adm-chips { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.adm-chip {
+  border: 1px solid var(--line); background: var(--paper); border-radius: 999px; padding: 0.3rem 0.7rem;
+  font-size: 0.84rem; cursor: pointer; color: var(--ink-2); display: inline-flex; align-items: center; gap: 0.35rem;
+}
+.adm-chip:hover { border-color: var(--ink-3); }
+.adm-chip[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.adm-chip-n { font-size: 0.75rem; opacity: 0.75; font-variant-numeric: tabular-nums; }
+.adm-toolbar-count { margin-left: auto; font-size: 0.82rem; color: var(--ink-3); }
