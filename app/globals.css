@@ -260,17 +260,18 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 /* habit map */
 .cb-maplist { display: grid; gap: 0.5rem; margin: 1.4rem 0 0; max-width: 44rem; }
 .cb-maprow {
-  display: flex; gap: 0.9rem; align-items: flex-start;
+  display: flex; gap: 0.9rem; align-items: center;
   border: 1px solid var(--line-soft); background: var(--panel);
   border-radius: 12px; padding: 0.85rem 1rem;
 }
 .cb-maprow-n {
   flex: none; width: 1.85rem; height: 1.85rem; border-radius: 9px; background: var(--paper);
-  border: 1px solid var(--line); display: grid; place-items: center;
+  border: 1px solid var(--line); display: grid; place-items: center; line-height: 1;
   font-size: 0.85rem; font-weight: 660; color: var(--ink-2);
 }
-.cb-maprow b { display: block; font-size: 0.97rem; letter-spacing: -0.01em; }
-.cb-maprow span { display: block; font-size: 0.88rem; color: var(--ink-2); margin-top: 0.1rem; }
+.cb-maprow-text { flex: 1; min-width: 0; }
+.cb-maprow-text b { display: block; font-size: 0.97rem; letter-spacing: -0.01em; }
+.cb-maprow-text span { display: block; font-size: 0.88rem; color: var(--ink-2); margin-top: 0.1rem; }
 
 /* compare */
 .cb-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; margin: 1rem 0 1.2rem; }

@@ -826,7 +826,7 @@ export function MakeItCount({ user, initial, notice }: Props) {
                 {HABIT_MAP.map(([t, d], i) => (
                   <div className="cb-maprow" key={t}>
                     <span className="cb-maprow-n" aria-hidden="true">{i + 1}</span>
-                    <span>
+                    <span className="cb-maprow-text">
                       <b>{t}</b>
                       <span>{d}</span>
                     </span>
