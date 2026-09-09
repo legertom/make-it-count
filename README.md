@@ -8,7 +8,7 @@ progress.
 
 | Area | Where | Notes |
 | --- | --- | --- |
-| Course | `components/course/MakeItCount.tsx`, `lib/course-pages.ts`, `app/(app)/course/` | Ported from the original prototype. Every page has its own URL (`/course/h4g`), and `/` redirects to wherever the learner left off. The component is mounted from the `course` layout so answers survive page-to-page navigation; progress and answers also sync to the database, so learners resume across devices. |
+| Course | `components/course/MakeItCount.tsx`, `lib/course-pages.ts`, `app/(app)/course/` | Ported from the original prototype. Every page has its own URL (`/course/h4g`). `/` is a home page with the learner's status, a Continue button, and a clickable map of every page. The component is mounted from the `course` layout so answers survive page-to-page navigation; progress and answers also sync to the database, so learners resume across devices. |
 | Sign-in | `auth.config.ts`, `auth.ts`, `proxy.ts`, `app/login` | Auth.js with Google. Only verified `@clever.com` accounts get in. |
 | Roles | `lib/access.ts`, `users.is_admin`, `components/admin/AdminToggle.tsx` | Admins are anyone in `ADMIN_EMAILS` (config, can't be demoted from the UI) plus anyone promoted on the Learners page. Admins can promote or demote others, add an admin by email before they've signed in, and can't remove their own access. |
 | Feedback widget | `components/feedback/*` | Floating button → chat with the eve agent, or a direct form. Screenshot capture with draw / arrow / box / text annotation. |

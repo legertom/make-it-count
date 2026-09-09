@@ -726,3 +726,32 @@ textarea.mic-input { resize: vertical; min-height: 5.5rem; line-height: 1.45; }
 .adm-rowactions { display: inline-flex; gap: 0.15rem; }
 .adm-iconbtn[data-tone="good"]:hover { color: var(--good); background: var(--good-wash); border-color: #BFE0D8; }
 .adm-iconbtn[data-static="true"] { cursor: default; color: #4B2FB5; }
+
+/* home / overview */
+.home-status {
+  display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap;
+  border: 1px solid var(--line); border-radius: 16px; padding: 1.1rem 1.3rem; margin-top: 1.6rem; background: var(--panel);
+}
+.home-status-text { flex: 1; min-width: 16rem; display: grid; gap: 0.25rem; }
+.home-status-text b { font-size: 1.02rem; letter-spacing: -0.01em; }
+.home-status-text span { font-size: 0.92rem; color: var(--ink-2); }
+.home-bar { display: block; height: 6px; border-radius: 3px; background: var(--panel-2); overflow: hidden; margin-top: 0.45rem; max-width: 26rem; }
+.home-bar i { display: block; height: 100%; background: var(--cyan); border-radius: 3px; }
+.home-toc { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: 0.7rem; max-width: 44rem; }
+.home-toc-section { border: 1px solid var(--line-soft); border-radius: 14px; background: var(--paper); padding: 0.85rem 1rem 0.6rem; }
+.home-toc-head { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.4rem; }
+.home-toc-head b { font-size: 0.97rem; }
+.home-toc-section ul { list-style: none; margin: 0; padding: 0 0 0 2.55rem; max-width: none; }
+.home-toc-page {
+  display: flex; align-items: center; gap: 0.55rem; padding: 0.32rem 0.4rem; margin-left: -0.4rem; border-radius: 8px;
+  color: var(--ink-2); text-decoration: none; font-size: 0.92rem;
+}
+.home-toc-page:hover { background: var(--panel); color: var(--ink); }
+.home-toc-page[data-seen="true"] { color: var(--ink); }
+.home-toc-page[data-current="true"] { color: var(--blue); font-weight: 600; }
+.home-toc-dot {
+  width: 1.05rem; height: 1.05rem; border-radius: 50%; border: 1.5px solid var(--line); display: inline-grid; place-items: center;
+  color: #fff; flex: none;
+}
+.home-toc-page[data-seen="true"] .home-toc-dot { background: var(--cyan); border-color: var(--cyan); }
+.home-toc-page .badge { margin-left: 0.3rem; }
