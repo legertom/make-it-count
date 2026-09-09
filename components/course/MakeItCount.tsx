@@ -662,7 +662,7 @@ export function MakeItCount({ user, initial }: Props) {
           </Link>
           <div className="mic-user">
             {user.isAdmin && (
-              <Link className="mic-user-link" href="/admin">
+              <Link className="mic-user-link" href="/admin/learners">
                 Admin
               </Link>
             )}
