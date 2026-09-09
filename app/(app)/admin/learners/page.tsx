@@ -26,8 +26,7 @@ export default async function LearnersPage() {
       },
       sort: {
         person: (l.name || l.email).toLowerCase(),
-        progress: l.completedAt ? 1000 : (l.furthestIndex ?? -1),
-        status: statusRank,
+        progress: l.completedAt ? 1000 : statusRank === 0 ? -1 : (l.furthestIndex ?? -1),
         active: l.activeMs,
         elapsed,
         lastLogin: l.lastLoginAt.getTime(),
@@ -50,23 +49,32 @@ export default async function LearnersPage() {
             {l.name && <small>{l.email}</small>}
           </span>
         </Link>,
-        <span key="pr">
-          <span className="adm-bar" title={p.text}><i style={{ width: `${Math.round(p.pct * 100)}%` }} /></span>
-          <small className="muted" style={{ display: "block" }}>
-            {p.state === "active" ? `${p.text} · ${pageTitle(l.furthestPage ?? "why-frame")}` : p.text}
-            {l.resetCount ? ` · reset ×${l.resetCount}` : ""}
-          </small>
+        <span key="s" className="adm-status">
+          {l.completedAt ? (
+            <>
+              <span className="badge" data-done="true">Completed</span>
+              <small className="muted">{fmtDate(l.completedAt, true)}</small>
+            </>
+          ) : (
+            <>
+              <span className="badge" data-done="false">{p.state === "new" ? "Not started" : "In progress"}</span>
+              {p.state === "active" && (
+                <>
+                  <span className="adm-bar" title={p.text}><i style={{ width: `${Math.round(p.pct * 100)}%` }} /></span>
+                  <small className="muted">{p.text} · {pageTitle(l.furthestPage ?? "why-frame")}</small>
+                </>
+              )}
+            </>
+          )}
+          {l.resetCount ? <small className="muted">reset ×{l.resetCount}</small> : null}
         </span>,
-        l.completedAt ? (
-          <span key="s"><span className="badge" data-done="true">Completed</span><br /><small className="muted">{fmtDate(l.completedAt, true)}</small></span>
-        ) : (
-          <span key="s" className="badge" data-done="false">{p.state === "new" ? "Not started" : "In progress"}</span>
-        ),
-        fmtDuration(l.activeMs),
-        <span key="e" className="muted">{l.completedAt ? fmtDuration(elapsed) : l.startedAt ? `${fmtDuration(elapsed)} so far` : "—"}</span>,
-        <span key="ll" className="nowrap muted" title={fmtDate(l.lastLoginAt, true)}>{timeAgo(l.lastLoginAt)}</span>,
+        <span key="a" className="nowrap">{fmtDuration(l.activeMs)}</span>,
+        <span key="e" className="nowrap muted">{l.completedAt ? fmtDuration(elapsed) : l.startedAt ? `${fmtDuration(elapsed)} so far` : "—"}</span>,
+        <span key="ll" className="nowrap muted" title={fmtDate(l.lastLoginAt, true)}>
+          {timeAgo(l.lastLoginAt)}
+          <small style={{ display: "block" }}>{l.loginCount} login{l.loginCount === 1 ? "" : "s"}</small>
+        </span>,
         <span key="la" className="nowrap muted" title={fmtDate(l.lastSeenAt, true)}>{timeAgo(l.lastSeenAt)}</span>,
-        <span key="lg" className="muted">{l.loginCount}</span>,
         <span key="rt" className="nowrap" title={l.ratingComment ?? undefined}>{l.rating ? <Stars n={l.rating} /> : <span className="muted">—</span>}</span>,
         <span key="r" className="nowrap">{l.startedAt && <ResetLearnerButton email={l.email} name={l.name} compact />}</span>,
       ],
@@ -121,14 +129,12 @@ export default async function LearnersPage() {
       </p>
       <LearnerRoster
         columns={[
-          { key: "person", label: "Person" },
-          { key: "progress", label: "Progress", defaultDir: "desc" },
-          { key: "status", label: "Status", defaultDir: "desc" },
-          { key: "active", label: "Active time", num: true },
+          { key: "person", label: "Learner" },
+          { key: "progress", label: "Status", defaultDir: "desc" },
+          { key: "active", label: "Active", num: true },
           { key: "elapsed", label: "Elapsed", num: true },
           { key: "lastLogin", label: "Last login", defaultDir: "desc" },
           { key: "lastActive", label: "Last active", defaultDir: "desc" },
-          { key: "logins", label: "Logins", num: true },
           { key: "rating", label: "Rating", defaultDir: "desc" },
           { key: "actions", label: "", sortable: false },
         ]}
