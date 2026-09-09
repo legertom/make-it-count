@@ -45,18 +45,30 @@ npm run db:generate   # regenerate ./drizzle after editing lib/db/schema.ts
 npm run db:migrate    # apply migrations to the Neon DB in .env.local
 ```
 
-## Deploying to Vercel (Clever team only)
+## Production
 
-1. Create the project under the Clever Vercel team and connect this repo.
-2. Add a Neon Postgres store from the Vercel Marketplace; it sets `DATABASE_URL`.
-   `npm run build` runs migrations before `next build`.
-3. Set the environment variables from `.env.example`: `AUTH_SECRET`, `AUTH_GOOGLE_ID`,
-   `AUTH_GOOGLE_SECRET`, `ADMIN_EMAILS`, `INTERNAL_API_SECRET`, and an AI Gateway key
-   (or rely on the project's OIDC token for the gateway). Leave `AUTH_DEV_BYPASS` unset.
-4. Add the production redirect URI `https://<domain>/api/auth/callback/google` to the Google
-   OAuth client.
+Live at <https://make-it-count-clever.vercel.app>, Vercel project `make-it-count-clever` on the
+Clever team ("Tom Leger's Clever projects"). The GitHub repo is connected, so pushes to `main`
+deploy automatically. `vercel deploy --prod` from a linked checkout works too.
 
-The eve agent deploys as a Vercel service alongside the app; `withEve()` writes the routing.
+Already configured on Vercel:
+
+- Neon Postgres (`make-it-count-db`) from the Marketplace, wired to production and preview as
+  `DATABASE_URL`. `npm run build` runs migrations before `next build`.
+- `AUTH_SECRET`, `AUTH_TRUST_HOST`, `ALLOWED_EMAIL_DOMAIN`, `ADMIN_EMAILS`, `INTERNAL_API_SECRET`
+  for production and preview.
+- The eve agent deploys as a Vercel service alongside the app; `withEve()` writes the routing.
+  Its model calls go through Vercel AI Gateway using the project's OIDC token.
+
+Still to add before people can sign in:
+
+1. A Google OAuth client (Google Cloud Console → APIs & Services → Credentials → OAuth client,
+   Web application) with the redirect URI
+   `https://make-it-count-clever.vercel.app/api/auth/callback/google`.
+2. `vercel env add AUTH_GOOGLE_ID production` and `vercel env add AUTH_GOOGLE_SECRET production`
+   (repeat for `preview` if you want preview deploys to sign in), then redeploy.
+
+Leave `AUTH_DEV_BYPASS` unset in production; the code ignores it there anyway.
 
 ## How the pieces talk to each other
 
