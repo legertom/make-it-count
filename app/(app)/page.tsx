@@ -64,8 +64,8 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           <div className="cb-banner" role="status">That page is for course admins only.</div>
         )}
         <main className="cb-col">
-          <p className="cb-eyebrow">A ten-minute course for everyone at Clever</p>
-          <h1>Make It Count</h1>
+          <p className="cb-eyebrow">A fifteen-minute course for everyone at Clever</p>
+          <h1>Make It Count: Getting the most out of your Claude budget</h1>
           <p className="cb-lede" style={{ marginTop: "0.9rem" }}>
             How to use Claude and Gemini on purpose: the right tool, a focused conversation, and the right amount of
             horsepower for the job in front of you.
@@ -90,7 +90,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
               ) : (
                 <>
                   <b>You haven't started yet</b>
-                  <span>Twenty-one short pages. Your place is saved as you go, on any device.</span>
+                  <span>Your place is saved as you go, on any device.</span>
                 </>
               )}
               <span className="home-bar" aria-hidden="true">

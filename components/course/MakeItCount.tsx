@@ -410,10 +410,10 @@ const FINAL: { prompt: string; options: Option[] }[] = [
     ],
   },
   {
-    prompt: "You've been working deliberately all month on a genuinely valuable analysis, and you're approaching your $50.",
+    prompt: "You've been working deliberately all month on a genuinely valuable analysis, and you're approaching your monthly limit in Claude.",
     options: [
       { key: "A", label: "Stop using Claude and finish it some other way.", correct: false, feedback: "The budget isn't a stopping signal for valuable work. Switching tools mid-analysis usually costs you more time than the usage was worth." },
-      { key: "B", label: "Request more usage, and say what the work is.", correct: true, feedback: "This is exactly what the escalation path is for. Well-managed Claude work that's creating real value is the strongest possible reason to ask for more." },
+      { key: "B", label: "Request more usage through the normal path.", correct: true, feedback: "This is exactly what the request path is for. Well-managed Claude work that's creating real value is the strongest possible reason to ask for more, and the request takes seconds." },
       { key: "C", label: "Quietly finish in short chats to squeeze under the line.", correct: false, feedback: "Rationing mid-project tends to produce worse work and more retries. If the work is worth it, ask. That's not cheating the budget, it's using it." },
     ],
   },
@@ -915,8 +915,8 @@ export function MakeItCount({ user, initial }: Props) {
               </p>
               <div className="cb-facts">
                 <div className="cb-fact">
-                  <span className="cb-fact-k">$50</span>
-                  <span className="cb-fact-v">Your starting monthly Claude budget</span>
+                  <span className="cb-fact-k">A budget</span>
+                  <span className="cb-fact-v">Everyone has a monthly Claude budget. The amount depends on your role.</span>
                 </div>
                 <div className="cb-fact">
                   <span className="cb-fact-k">Ask</span>
@@ -928,11 +928,18 @@ export function MakeItCount({ user, initial }: Props) {
                 </div>
               </div>
               <p>
-                The $50 is a guardrail, not a scoreboard. It keeps usage visible and predictable; it isn't
+                The budget is a guardrail, not a scoreboard. It keeps usage visible and predictable; it isn't
                 something to compete on. If you're doing real work with Claude, you'll use a good chunk of it most
                 months. Some months you'll need more, and asking for more is a normal part of the job.
               </p>
-              <Nav page={page} go={go} note="About 10 minutes, start to finish" />
+              <div className="cb-tip">
+                <b>To see where you stand</b>
+                <p>
+                  In the Claude app, open <strong>Settings &rarr; Usage</strong>. It shows your usage this month
+                  and how you're tracking against your limit. In Cowork or Claude Code, type <code>/usage</code>.
+                </p>
+              </div>
+              <Nav page={page} go={go} note="About 15 minutes, start to finish" />
             </>
           )}
 
@@ -1056,25 +1063,20 @@ export function MakeItCount({ user, initial }: Props) {
                 A New Chat is a clean desk. Nothing from the last job is sitting there, so Claude isn't weighing an
                 HR question against your customer email.
               </p>
-              <p>Here's a real Monday, all in one conversation:</p>
-              <div className="cb-quiet" style={{ marginBottom: "1rem" }}>
-                <ul style={{ margin: 0 }}>
-                  <li>9:10 &mdash; analyzing the district onboarding survey</li>
-                  <li>10:25 &mdash; a quick question about parental leave</li>
-                  <li>11:40 &mdash; drafting a customer email</li>
-                  <li>1:15 &mdash; brainstorming names for a webinar series</li>
-                  <li>2:30 &mdash; tightening the slides for Thursday</li>
-                  <li>3:45 &mdash; and now, a fresh analysis for a different customer</li>
-                </ul>
-              </div>
+              <p>
+                Here's why it matters. Every time you send a message, Claude re-reads the entire conversation from
+                the top before it answers. In a chat that has already carried a survey analysis, an HR question, and
+                a customer email, all of that gets re-read for whatever you ask next. That's more usage on every
+                message, and a desk piled with material that has nothing to do with the job in front of you.
+              </p>
               <Scenario
                 idPrefix="h1"
-                prompt="You're about to start the new customer analysis. What's the strongest move?"
+                prompt="One conversation has already carried this morning's survey analysis, a quick HR question, and a customer email. Now you need a fresh analysis for a different customer. What's the strongest move?"
                 value={a.h1}
                 onChange={(k) => patch({ h1: k })}
                 options={[
                   { key: "A", label: "Keep going here so Claude remembers how you like things.", correct: false, feedback: "You don't need one giant conversation for that. Tell Claude what you want in the new chat. That costs one sentence and gets you a clean desk." },
-                  { key: "B", label: "Start a New Chat for the analysis.", correct: true, feedback: "The job changed, so the desk should too. Everything from this morning stays in your history if you need it; it just stops riding along." },
+                  { key: "B", label: "Start a New Chat for the analysis.", correct: true, feedback: "The job changed, so the desk should too. Everything from earlier stays in your history if you need it; it just stops being re-read on every message." },
                   { key: "C", label: "Ask Claude to ignore everything above.", correct: false, feedback: "Reasonable instinct, but it doesn't clear the desk. It adds one more instruction to it. A New Chat is the cleaner and faster move." },
                 ]}
               />
@@ -1153,8 +1155,8 @@ export function MakeItCount({ user, initial }: Props) {
               </p>
               <h2 style={{ marginTop: "1.8rem" }}>The RACE framework</h2>
               <p style={{ marginTop: "0.5rem" }}>
-                You've seen RACE in earlier Clever trainings, and it works just as well with Claude. Tap each
-                part to see what it means here.
+                RACE is a framework for writing a clear request: Role, Action, Context, Expectation. Tap each part
+                to see what it means here.
               </p>
               <div className="cb-formula" role="group" aria-label="Parts of a clear request">
                 {RACE.map((f) => (
@@ -1302,12 +1304,15 @@ export function MakeItCount({ user, initial }: Props) {
                 </div>
               </div>
 
-              <h2 style={{ marginTop: "1.8rem" }}>When to reach for Claude instead</h2>
+              <h2 style={{ marginTop: "1.8rem" }}>Where Claude earns its usage</h2>
+              <p style={{ marginTop: "0.6rem" }}>
+                Both tools are capable. The question is the shape of the work. Claude is the better fit when the
+                thinking itself is the hard part:
+              </p>
               <ul style={{ marginTop: "0.7rem" }}>
-                <li>Work that goes to a customer, a district, or leadership and has to be right.</li>
-                <li>Evidence that disagrees with itself, or a recommendation with real consequences.</li>
-                <li>Long, careful, multi-step work where you'll build on the answer for hours.</li>
-                <li>Anything Gemini already tried and didn't land.</li>
+                <li>Weighing sources that pull in different directions before you land on a recommendation.</li>
+                <li>Long, multi-step work where each answer builds on the last for hours.</li>
+                <li>Pulling a large, messy body of material into one considered point of view.</li>
               </ul>
               <p className="cb-pull">Try Gemini first for quick, routine work. Bring in Claude when the thinking is the hard part.</p>
               <Nav page={page} go={go} label="The second dial" />
@@ -1493,26 +1498,20 @@ export function MakeItCount({ user, initial }: Props) {
                 invisible and nothing in the interface warns you about it.
               </p>
               <p>
-                Last month one person here spent about a fifth of their Claude usage on connectors they never
-                asked to use. Not connectors sitting there unused. Connectors that went and did things.
+                Here's what happens. When a connector is switched on, Claude can use it in any conversation where
+                it judges the material might be relevant. It does this at its own discretion: there's no step
+                where it checks with you first, and nothing in the interface shows you what it cost. So a
+                connector you never meant to use in a conversation can still run in it, and quietly drive up your
+                usage.
               </p>
-              <Feedback tone="info" title="This one isn't on you">
-                That person didn't do anything careless, and neither have you. This is simply how these tools
-                work right now. Switching a connector on doesn't put it in a drawer for you to reach for later
-                &mdash; it tells Claude the connector exists, and Claude decides for itself when something looks
-                relevant. There's no step where it checks with you first, and nothing shows you what it cost.
-                It's a known rough edge, and part of it is improving: the settings that control how connectors
-                get loaded are getting better. What hasn't changed is that Claude still decides on its own when
-                a connector looks relevant &mdash; so deciding up front what a conversation can reach for is the
-                part that stays your call.
-              </Feedback>
               <div className="cb-pull">A connector that's switched on isn't waiting to be picked up. It's permission to go and fetch.</div>
-              <p>
-                So this isn't something you can catch by being careful mid-conversation. You're not the only one
-                deciding when a connector runs, and most of the time nothing stops to ask you. The decision that
-                matters happens before you start typing.
-              </p>
-              <h2 style={{ marginTop: "2rem" }}>Why one search turns into a fifth of a month</h2>
+              <Feedback tone="info" title="This one isn't on you">
+                This is how these tools work right now, not a mistake anyone is making. It's a known rough edge,
+                and the part that controls how connectors get loaded is improving. What hasn't changed is that
+                Claude decides on its own when a connector looks relevant &mdash; so deciding up front what a
+                conversation can reach for is the part that stays your call.
+              </Feedback>
+              <h2 style={{ marginTop: "2rem" }}>Why one search costs more than one search</h2>
               <p style={{ marginTop: "0.6rem" }}>
                 Everything in a conversation gets sent again with every message you write. That's what makes
                 this compound. Say a search you didn't ask for happens early in a long chat:
@@ -1525,9 +1524,9 @@ export function MakeItCount({ user, initial }: Props) {
                 <div className="cb-flow-step" data-hot="true"><b>The bill</b>One search you didn't want, paid for thirty-seven more times.</div>
               </div>
               <p>
-                Do that a few times a week and you have your fifth of a month. No single moment of it looks like
-                waste. There's nothing to notice and nothing to feel bad about &mdash; which is exactly why the
-                only fix is the one you make before the conversation starts.
+                Do that a few times a week and it adds up to a real share of a month's budget. No single moment
+                of it looks like waste, and nothing stops to ask you &mdash; which is exactly why the only fix is
+                the one you make before the conversation starts.
               </p>
 
               <div className="cb-ws">
@@ -1689,23 +1688,24 @@ export function MakeItCount({ user, initial }: Props) {
               </p>
               <p>
                 That isn't a failure, and it isn't gaming the budget. It's exactly what the request path is for.
-                When Claude offers the <strong>Request more usage</strong> option, use it to send an increase
-                request.
+                There are two paths, depending on your team.
               </p>
-              <div className="cb-quiet" style={{ marginTop: "1.4rem" }}>
-                <h4>The work</h4>
-                <p style={{ margin: "0.2rem 0 1rem", fontSize: "0.95rem" }}>
-                  &ldquo;I'm synthesizing customer onboarding feedback into recommendations for Q4 planning.&rdquo;
-                </p>
-                <h4>What more Claude unlocks</h4>
-                <p style={{ margin: "0.2rem 0 0", fontSize: "0.95rem" }}>
-                  &ldquo;It will let me finish the analysis and the recommendation draft this week.&rdquo;
-                </p>
+              <div className="cb-checks" style={{ marginTop: "1.2rem" }}>
+                <div className="cb-check">
+                  <b>Engineering: post in #claude-budget-escalations.</b>
+                  <span>Say what you're working on and that you need more Claude usage this month. That's the whole request.</span>
+                </div>
+                <div className="cb-check">
+                  <b>Everyone else: use the Request more usage button in Claude.</b>
+                  <span>
+                    When you're near your limit, Claude offers it right in the app. Press it and you're done. There's
+                    no form to fill in and no one to message directly: the person who manages Claude budgets will
+                    either approve the request or reach out to you with a question about what you're working on.
+                  </span>
+                </div>
               </div>
               <ul style={{ marginTop: "1.1rem" }}>
-                <li>No apology.</li>
-                <li>No essay.</li>
-                <li>Tie the request to work, not to a feeling about the number.</li>
+                <li>Either way, no essay. If there's a question about the work, it'll come to you.</li>
                 <li>And where Gemini fits a part of the workflow, use it there. Good tool choice is part of a good request.</li>
               </ul>
               <Nav page={page} go={go} label="Check for knowledge" />
