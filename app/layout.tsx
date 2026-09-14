@@ -6,7 +6,7 @@ const SITE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
   : "http://localhost:3000";
 
 const TITLE = "Make It Count";
-const TAGLINE = "Getting the most out of your Claude budget";
+const TAGLINE = "Getting the most out of your AI tokens";
 const DESCRIPTION =
   "A fifteen-minute course for everyone at Clever on getting real work out of Claude and Gemini: pick the right tool, keep the chat focused, use the right amount of horsepower, and know how to ask for more. Sign in with your Clever Google account.";
 

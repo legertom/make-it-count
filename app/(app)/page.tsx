@@ -65,7 +65,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         )}
         <main className="cb-col">
           <p className="cb-eyebrow">A fifteen-minute course for everyone at Clever</p>
-          <h1>Make It Count: Getting the most out of your Claude budget</h1>
+          <h1>Make It Count: Getting the most out of your AI tokens</h1>
           <p className="cb-lede" style={{ marginTop: "0.9rem" }}>
             How to use Claude and Gemini on purpose: the right tool, a focused conversation, and the right amount of
             horsepower for the job in front of you.

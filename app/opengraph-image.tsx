@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Make It Count: Getting the most out of your Claude budget. A fifteen-minute course for everyone at Clever.";
+export const alt = "Make It Count: Getting the most out of your AI tokens. A fifteen-minute course for everyone at Clever.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -37,7 +37,7 @@ export default function OpenGraphImage() {
               Make It Count
             </div>
             <div style={{ display: "flex", fontSize: 34, fontWeight: 500, marginTop: 18, opacity: 0.95, lineHeight: 1.25 }}>
-              Getting the most out of your Claude budget.
+              Getting the most out of your AI tokens.
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", fontSize: 26, lineHeight: 1.4, opacity: 0.92 }}>
