@@ -25,6 +25,9 @@ export type CourseAnswers = {
   h4b: string | null;
   burners: string[];
   burnersChecked: boolean;
+  connectors: string[];
+  connectorsChecked: boolean;
+  surface: string;
   fIdx: number;
   fAns: Record<string, string>;
   compact: boolean;
@@ -43,10 +46,20 @@ const INITIAL: CourseAnswers = {
   h4b: null,
   burners: [],
   burnersChecked: false,
+  connectors: [],
+  connectorsChecked: false,
+  surface: "chat",
   fIdx: 0,
   fAns: {},
   compact: false,
 };
+
+/** Each multi-select list, and the "checked my picks" flag that toggling it resets. */
+const CHECKED_FLAG = {
+  details: "detailsChecked",
+  burners: "burnersChecked",
+  connectors: "connectorsChecked",
+} as const;
 
 type User = { email: string; name: string | null; image: string | null; isAdmin: boolean };
 
@@ -156,6 +169,7 @@ const DESK_ITEMS = [
   { id: "pto", label: "A quick question about your PTO balance", kind: "clutter", tag: "Different job entirely" },
   { id: "old", label: "Last quarter's superseded plan", kind: "clutter", tag: "Out of date" },
   { id: "loops", label: "Nine rounds of “make it shorter”", kind: "clutter", tag: "Already resolved" },
+  { id: "connectors", label: "Eight connectors, all switched on", kind: "clutter", tag: "Claude may use them whether or not you meant it to" },
 ] as const;
 
 function Desk({ placed, setPlaced }: { placed: string[]; setPlaced: (fn: (p: string[]) => string[]) => void }) {
@@ -306,6 +320,51 @@ const BURNERS = [
 ];
 
 /* ------------------------------------------------------------------ */
+/*  Section 4 — connectors                                             */
+/* ------------------------------------------------------------------ */
+
+const CONNECTORS = [
+  { id: "c1", label: "Switch off the connectors this conversation doesn't need", keep: true, note: "Yes, and it's the whole fix. One pass before you start, five seconds, done." },
+  { id: "c2", label: "Set tool access to load connectors only when they're needed", keep: true, note: "Yes. With this many connected, loading them on demand keeps the ones you're not using out of the way." },
+  { id: "c3", label: "Say what to work from: “use the attached note, don't search Drive”", keep: true, note: "Yes. One sentence, and Claude stops guessing which sources are fair game." },
+  { id: "c4", label: "Disconnect Jira from your account", keep: false, note: "Not this one. You'll want Jira on Thursday. This is a dial you turn per conversation, not a spring clean." },
+  { id: "c5", label: "Nothing. You're not going to use them, so they won't cost anything", keep: false, note: "A completely reasonable assumption, and the one thing here that isn't true. You're not the only one deciding when a connector runs." },
+];
+
+const SURFACES = [
+  {
+    id: "chat",
+    name: "Claude chat",
+    rel: "Where most of us work",
+    steps: [
+      { b: "Open the + menu, bottom left of the message box.", s: "Go to Connectors and switch off anything this conversation has no business reaching for. It's a toggle per conversation, so nothing you do here disconnects anything." },
+      { b: "While you're in there, look at Tool access.", s: "It controls how your connectors get loaded. If you've connected a lot of things, pick the option that loads them only when they're needed instead of all of them at the start." },
+      { b: "Do it before your first message.", s: "This is the whole trick. Five seconds at the top of a conversation, and you've decided what this piece of work is allowed to touch." },
+    ],
+  },
+  {
+    id: "cowork",
+    name: "Cowork",
+    rel: "Draws the most, shows the least",
+    steps: [
+      { b: "Expect it to reach further than chat does.", s: "Cowork works in steps and keeps going on its own, so there are far more moments where it might decide a connector is relevant, and everything it finds stays with the task." },
+      { b: "Know that reading doesn't always ask.", s: "Connectors that only look things up can run without stopping for your approval, so most of this happens without you seeing a thing. That's not a bug, but it does mean you can't rely on noticing." },
+      { b: "Put the boundary in the ask.", s: "This is your real lever here. “Work from the attached note, don't go looking in Drive” is a completely normal instruction, and it does the job." },
+      { b: "When it does stop to ask, actually read it.", s: "That prompt is your one moment of control. Approving something for every future task just to clear it off your screen is how a one-time decision becomes a standing one." },
+    ],
+  },
+  {
+    id: "code",
+    name: "Claude Code",
+    rel: "Mostly engineers",
+    steps: [
+      { b: "Type /context.", s: "It breaks down exactly where your context is going, connector by connector. No guessing required." },
+      { b: "Type /mcp to manage what's connected.", s: "And if a project has no use for a connector, don't connect it for that project in the first place." },
+    ],
+  },
+];
+
+/* ------------------------------------------------------------------ */
 /*  Section 6 — final scenarios                                        */
 /* ------------------------------------------------------------------ */
 
@@ -343,6 +402,14 @@ const FINAL: { prompt: string; options: Option[] }[] = [
     ],
   },
   {
+    prompt: "You have eight connectors switched on. Today's job is tightening one paragraph of a Slack update.",
+    options: [
+      { key: "A", label: "Leave them. You won't use them, so they aren't costing anything.", correct: false, feedback: "Reasonable, and it's the way these tools actually behave that makes it wrong. Switched on means Claude may go and use them without asking, and whatever it fetches stays in the conversation and rides along with every message after it." },
+      { key: "B", label: "Switch off what this job doesn't need, then send the request.", correct: true, feedback: "Five seconds, before the first message. You're not disconnecting anything, you're just not bringing eight sources to a job that needs none of them." },
+      { key: "C", label: "Disconnect the ones you rarely use.", correct: false, feedback: "Heavier than it needs to be, and you'll want them back on Thursday. This is a dial you turn per conversation, not a spring clean." },
+    ],
+  },
+  {
     prompt: "You've been working deliberately all month on a genuinely valuable analysis, and you're approaching your $50.",
     options: [
       { key: "A", label: "Stop using Claude and finish it some other way.", correct: false, feedback: "The budget isn't a stopping signal for valuable work. Switching tools mid-analysis usually costs you more time than the usage was worth." },
@@ -356,7 +423,7 @@ const JOB_AID_TEXT = `THE FIVE-SECOND CHECK — Make It Count
 
 1. RIGHT TOOL?          Gemini, Claude Sonnet, or Claude Opus?
 2. RIGHT CHAT?          New job = New Chat.
-3. ONLY THE CONTEXT I NEED?   Relevant beats plentiful.
+3. ONLY THE CONTEXT I NEED?   Relevant beats plentiful — including what's switched on.
 4. RIGHT AMOUNT OF HORSEPOWER?  Match model + effort to the task.
 5. CLEAR ASK?           RACE: Role, Action, Context, Expectation.
 
@@ -767,11 +834,11 @@ export function MakeItCount({ user, initial }: Props) {
     go(0);
   };
 
-  const toggleIn = (key: "details" | "burners", id: string) =>
+  const toggleIn = (key: keyof typeof CHECKED_FLAG, id: string) =>
     setA((x) => {
       const list = x[key];
       const next = list.includes(id) ? list.filter((y) => y !== id) : [...list, id];
-      return { ...x, [key]: next, [key === "details" ? "detailsChecked" : "burnersChecked"]: false };
+      return { ...x, [key]: next, [CHECKED_FLAG[key]]: false };
     });
 
   const K = cur.key;
@@ -1417,6 +1484,139 @@ export function MakeItCount({ user, initial }: Props) {
             </>
           )}
 
+          {K === "burn-tools" && (
+            <>
+              <h1>What runs without you</h1>
+              <p className="cb-lede" style={{ marginTop: "0.9rem" }}>
+                Connectors link Claude to the places your work already lives: Drive, Gmail, Calendar, Jira,
+                Slack. They're genuinely useful, and they're the one part of this course where the cost is
+                invisible and nothing in the interface warns you about it.
+              </p>
+              <p>
+                Last month one person here spent about a fifth of their Claude usage on connectors they never
+                asked to use. Not connectors sitting there unused. Connectors that went and did things.
+              </p>
+              <Feedback tone="info" title="This one isn't on you">
+                That person didn't do anything careless, and neither have you. This is simply how these tools
+                work right now. Switching a connector on doesn't put it in a drawer for you to reach for later
+                &mdash; it tells Claude the connector exists, and Claude decides for itself when something looks
+                relevant. There's no step where it checks with you first, and nothing shows you what it cost.
+                It's a known rough edge, and part of it is improving: the settings that control how connectors
+                get loaded are getting better. What hasn't changed is that Claude still decides on its own when
+                a connector looks relevant &mdash; so deciding up front what a conversation can reach for is the
+                part that stays your call.
+              </Feedback>
+              <div className="cb-pull">A connector that's switched on isn't waiting to be picked up. It's permission to go and fetch.</div>
+              <p>
+                So this isn't something you can catch by being careful mid-conversation. You're not the only one
+                deciding when a connector runs, and most of the time nothing stops to ask you. The decision that
+                matters happens before you start typing.
+              </p>
+              <h2 style={{ marginTop: "2rem" }}>Why one search turns into a fifth of a month</h2>
+              <p style={{ marginTop: "0.6rem" }}>
+                Everything in a conversation gets sent again with every message you write. That's what makes
+                this compound. Say a search you didn't ask for happens early in a long chat:
+              </p>
+              <div className="cb-flow" aria-label="How one unwanted search compounds">
+                <div className="cb-flow-step"><b>Message 3</b>You ask something unrelated. Claude decides Drive might be relevant and pulls in six documents.</div>
+                <ArrowRight size={16} className="cb-flow-arrow" aria-hidden="true" />
+                <div className="cb-flow-step"><b>Messages 4 to 40</b>Those six documents are still in the conversation, so they go along with every message after it.</div>
+                <ArrowRight size={16} className="cb-flow-arrow" aria-hidden="true" />
+                <div className="cb-flow-step" data-hot="true"><b>The bill</b>One search you didn't want, paid for thirty-seven more times.</div>
+              </div>
+              <p>
+                Do that a few times a week and you have your fifth of a month. No single moment of it looks like
+                waste. There's nothing to notice and nothing to feel bad about &mdash; which is exactly why the
+                only fix is the one you make before the conversation starts.
+              </p>
+
+              <div className="cb-ws">
+                <div className="cb-ws-h">Tuesday morning</div>
+                <dl className="cb-ws-rows">
+                  <div className="cb-ws-row"><dt>Connectors on</dt><dd>Drive, Gmail, Calendar, Jira, Confluence, Slack, GitHub, Figma</dd></div>
+                  <div className="cb-ws-row"><dt>Tool access</dt><dd>Everything loaded at the start of the chat</dd></div>
+                  <div className="cb-ws-row"><dt>Today's job</dt><dd>&ldquo;Tighten this two-sentence Slack update.&rdquo;</dd></div>
+                </dl>
+              </div>
+              <div className="cb-q-prompt">What would you change? Pick everything that applies.</div>
+              <div className="cb-ms" role="group" aria-label="What would you change">
+                {CONNECTORS.map((c) => {
+                  const picked = a.connectors.includes(c.id);
+                  const verdict = a.connectorsChecked ? (c.keep ? "keep" : "drop") : undefined;
+                  return (
+                    <button key={c.id} type="button" className="cb-ms-item" aria-pressed={picked} data-verdict={verdict} onClick={() => toggleIn("connectors", c.id)}>
+                      <span className="cb-ms-box" aria-hidden="true">{picked ? <Check size={13} /> : null}</span>
+                      <span>
+                        {c.label}
+                        {a.connectorsChecked && <span className="cb-ms-note">{c.note}</span>}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ marginTop: "0.9rem", display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+                <button type="button" className="cb-btn cb-btn-primary" onClick={() => patch({ connectorsChecked: true })} disabled={a.connectors.length === 0}>
+                  Check my picks
+                </button>
+                {a.connectorsChecked && (
+                  <button type="button" className="cb-btn cb-btn-ghost" onClick={() => patch({ connectors: [], connectorsChecked: false })}>
+                    Try again
+                  </button>
+                )}
+              </div>
+              {a.connectorsChecked && (
+                <Feedback tone="info" title="Before, not after">
+                  All of this only works in front of the conversation. Once a connector has fetched something,
+                  it's in the chat, and switching it off afterwards doesn't take it back out. If a conversation
+                  has already filled up with material you didn't want, that's Habit 1: start a new chat.
+                </Feedback>
+              )}
+              <Nav page={page} go={go} label="Where to switch things off" />
+            </>
+          )}
+
+          {K === "burn-surfaces" && (
+            <>
+              <h1>Switching things off</h1>
+              <p className="cb-lede" style={{ marginTop: "0.9rem" }}>
+                The idea is the same everywhere: decide what this piece of work is allowed to reach for, before
+                you start. Where the switch lives depends on where you're working. Pick where you are.
+              </p>
+              <div className="cb-dial" role="group" aria-label="Choose where you're working">
+                {SURFACES.map((s) => (
+                  <button key={s.id} type="button" className="cb-tool" aria-pressed={a.surface === s.id} onClick={() => patch({ surface: s.id })}>
+                    <span className="cb-tool-n">{s.name}</span>
+                    <span className="cb-tool-r">{s.rel}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="cb-checks" style={{ marginTop: "1.2rem" }}>
+                {(SURFACES.find((s) => s.id === a.surface) ?? SURFACES[0]).steps.map((st) => (
+                  <div className="cb-check" key={st.b}>
+                    <b>{st.b}</b>
+                    <span>{st.s}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="cb-tip">
+                <b>The five-second version</b>
+                <p>
+                  Before the first message: is anything switched on that this job has no business reaching for?
+                  Switch it off. You're not disconnecting it, you're just not bringing it to this
+                  particular piece of work.
+                </p>
+              </div>
+              <h2 style={{ marginTop: "2rem" }}>Don't go the other way either</h2>
+              <p style={{ marginTop: "0.6rem" }}>
+                None of this is an argument for disconnecting things. A connector that saves you ten minutes of
+                copying and pasting is doing exactly what it should, and the answer is better for having the
+                real source in front of it. The waste isn't connectors. It's connectors running on
+                jobs that never needed them.
+              </p>
+              <Nav page={page} go={go} />
+            </>
+          )}
+
           {K === "burn-checks" && (
             <>
               <h1>Four things to check</h1>
@@ -1430,8 +1630,8 @@ export function MakeItCount({ user, initial }: Props) {
                   <span>Is a routine task running on far more reasoning than it needs?</span>
                 </div>
                 <div className="cb-check">
-                  <b>Look at what's turned on.</b>
-                  <span>Are search, research, or connected tools running when this task doesn't need them?</span>
+                  <b>Look at what's switched on.</b>
+                  <span>Is a connector free to go fetch things this job never needed? Switch it off before you start.</span>
                 </div>
                 <div className="cb-check">
                   <b>Look at the Project.</b>
