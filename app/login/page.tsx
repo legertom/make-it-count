@@ -19,7 +19,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
     <main className="login">
       <div className="login-card">
         <div className="login-brand">Make It Count</div>
-        <p className="login-sub">Using AI where it pays off. A short course for everyone at Clever.</p>
+        <p className="login-sub">Getting the most out of your AI tokens. A fifteen-minute course for everyone at Clever.</p>
 
         {error && <p className="login-error" role="alert">{ERRORS[error] ?? "Sign-in failed. Try again."}</p>}
 

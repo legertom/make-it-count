@@ -31,7 +31,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         <div className="cb-top-in">
           <Link href="/" className="cb-brand" aria-label="Make It Count home">
             <span className="cb-brand-name">Make It Count</span>
-            <span className="cb-brand-sub">Using AI where it pays off.</span>
+            <span className="cb-brand-sub">Getting the most out of your AI tokens.</span>
           </Link>
           <div className="mic-user">
             {user.isAdmin && (
