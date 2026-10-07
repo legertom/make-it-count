@@ -1,6 +1,15 @@
 import { PAGES, PAGE_COUNT } from "@/lib/course-pages";
 import type { LearnerRow, PageStat } from "@/lib/db/queries";
 
+/**
+ * Company headcount, used for the "finished, of all staff" stat on the Learners page.
+ * Driven by TOTAL_EMPLOYEES so it can be bumped without a deploy; see .env.example.
+ */
+export const TOTAL_EMPLOYEES = (() => {
+  const n = Number(process.env.TOTAL_EMPLOYEES);
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : 240;
+})();
+
 export function mean(xs: number[]): number {
   return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
 }
@@ -16,7 +25,12 @@ export type Overview = {
   signedIn: number;
   started: number;
   completed: number;
+  /** Share of those who started that have finished. */
   completionRate: number;
+  /** Company headcount the staff rate is measured against. */
+  totalEmployees: number;
+  /** Share of all staff who have finished. */
+  staffCompletionRate: number;
   avgActiveMsToComplete: number;
   medianActiveMsToComplete: number;
   avgElapsedMsToComplete: number;
@@ -25,7 +39,7 @@ export type Overview = {
   avgRating: number;
 };
 
-export function overview(learners: LearnerRow[]): Overview {
+export function overview(learners: LearnerRow[], totalEmployees = TOTAL_EMPLOYEES): Overview {
   const started = learners.filter((l) => l.startedAt);
   const completed = learners.filter((l) => l.completedAt);
   const activeToComplete = completed.map((l) => l.activeMs).filter((x) => x > 0);
@@ -41,6 +55,8 @@ export function overview(learners: LearnerRow[]): Overview {
     started: started.length,
     completed: completed.length,
     completionRate: started.length ? completed.length / started.length : 0,
+    totalEmployees,
+    staffCompletionRate: totalEmployees ? completed.length / totalEmployees : 0,
     avgActiveMsToComplete: mean(activeToComplete),
     medianActiveMsToComplete: median(activeToComplete),
     avgElapsedMsToComplete: mean(elapsed),

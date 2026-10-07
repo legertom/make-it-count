@@ -133,7 +133,8 @@ export default async function LearnersPage() {
         <div className="adm-stat"><b>{o.signedIn}</b><span>Signed in</span></div>
         <div className="adm-stat"><b>{o.started}</b><span>Started</span></div>
         <div className="adm-stat"><b>{o.completed}</b><span>Completed</span></div>
-        <div className="adm-stat"><b>{Math.round(o.completionRate * 100)}%</b><span>Completion rate</span></div>
+        <div className="adm-stat"><b>{Math.round(o.staffCompletionRate * 100)}%</b><span>Finished, of all {o.totalEmployees} staff</span></div>
+        <div className="adm-stat"><b>{Math.round(o.completionRate * 100)}%</b><span>Finished, of those who started</span></div>
         <div className="adm-stat"><b>{fmtDuration(o.avgActiveMsToComplete)}</b><span>Avg active time to finish</span></div>
         <div className="adm-stat"><b>{fmtDuration(o.medianActiveMsToComplete)}</b><span>Median active time</span></div>
         <div className="adm-stat"><b>{fmtDuration(o.avgElapsedMsToComplete)}</b><span>Avg elapsed to finish</span></div>

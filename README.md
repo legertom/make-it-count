@@ -13,7 +13,7 @@ progress.
 | Roles | `lib/access.ts`, `users.is_admin`, `components/admin/AdminToggle.tsx` | Admins are anyone in `ADMIN_EMAILS` (config, can't be demoted from the UI) plus anyone promoted on the Learners page. Admins can promote or demote others, add an admin by email before they've signed in, and can't remove their own access. |
 | Feedback widget | `components/feedback/*` | Floating button → chat with the eve agent, or a direct form. Screenshot capture with draw / arrow / box / text annotation. |
 | Feedback agent | `agent/*` | An [eve.dev](https://eve.dev) agent mounted at `/eve/v1/*` by `withEve()` in `next.config.ts`. It verifies the Auth.js cookie, chats, and files feedback through `POST /api/internal/feedback`. |
-| Admin | `app/(app)/admin/*` | Feedback list and detail (status, notes, screenshot). Learners: roster, completion, time per page, per-learner detail, reset progress, CSV export. Tables sort by column (`components/admin/SortableTable.tsx`). |
+| Admin | `app/(app)/admin/*` | Feedback list and detail (status, notes, screenshot). Learners: roster, completion (including the share of all staff, from `TOTAL_EMPLOYEES`, default 240), time per page, per-learner detail, reset progress, CSV export. Tables sort by column (`components/admin/SortableTable.tsx`). |
 | Course rating | `CourseRating` in `MakeItCount.tsx`, `saveRating` in `lib/db/queries.ts` | After marking complete, learners give 1–5 stars and an optional comment. Stored on `progress` and mirrored as a `rating`-type row on the Feedback page; average and comments show on Learners. |
 | Data | `lib/db/*`, `drizzle/` | Drizzle ORM. Local dev uses embedded Postgres (PGlite) in `./.data` with zero setup; production uses Neon via `DATABASE_URL`. |
 
@@ -57,7 +57,7 @@ Already configured on Vercel:
 
 - Neon Postgres (`make-it-count-db`) from the Marketplace, wired to production and preview as
   `DATABASE_URL`. `npm run build` runs migrations before `next build`.
-- `AUTH_SECRET`, `AUTH_TRUST_HOST`, `ALLOWED_EMAIL_DOMAIN`, `ADMIN_EMAILS`, `INTERNAL_API_SECRET`,
+- `AUTH_SECRET`, `AUTH_TRUST_HOST`, `ALLOWED_EMAIL_DOMAIN`, `ADMIN_EMAILS`, `TOTAL_EMPLOYEES`, `INTERNAL_API_SECRET`,
   `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` for production and preview. The Google OAuth client
   lives in the `make-it-count` Google Cloud project with redirect URIs for the production URL and
   `http://localhost:3000`.
