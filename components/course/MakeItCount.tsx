@@ -368,11 +368,11 @@ const SURFACES = [
 
 const FINAL: { prompt: string; options: Option[] }[] = [
   {
-    prompt: "Marketing needs 40 variations of event copy, all built from approved source material. Straightforward work, just a lot of it.",
+    prompt: "Claude's 1,200-word draft of a customer announcement is nearly right. Two sentences in the third paragraph need to change.",
     options: [
-      { key: "A", label: "Gemini, if the quality holds up.", correct: true, feedback: "High-volume, routine work off approved source material is exactly what Gemini is good for here. That's a tool-fit decision, not a compromise." },
-      { key: "B", label: "Claude Opus at Max effort, so every variation is excellent.", correct: false, feedback: "Forty routine variations don't get meaningfully better from the deepest reasoning setting. Save that for work where the thinking is the hard part." },
-      { key: "C", label: "Claude Sonnet, one variation per chat.", correct: false, feedback: "Sonnet could handle this fine, but forty separate chats adds work for you without adding quality. This is a volume job, and Gemini is a good home for it." },
+      { key: "A", label: "Ask for just the revised paragraph, and drop it into your draft yourself.", correct: true, feedback: "Twenty seconds of your own editing instead of Claude re-printing everything. Output is usage too, and a document revised five times gets paid for six times the other way." },
+      { key: "B", label: "Send the change and ask for the whole announcement again, so you always have the latest version.", correct: false, feedback: "Reasonable, but you've just paid for 1,200 words to check two sentences, and you'll pay again at the next change. Ask for one clean copy at the end, not after every edit." },
+      { key: "C", label: "Start a New chat, paste the draft in, and ask for the fix there.", correct: false, feedback: "Nothing has gone wrong in this chat, and the draft is already on the desk. A fresh chat just loads all of it again." },
     ],
   },
   {
@@ -395,8 +395,8 @@ const FINAL: { prompt: string; options: Option[] }[] = [
     prompt: "Claude's first draft of your email missed the mark, because your ask never said who it was for.",
     options: [
       { key: "A", label: "Reply: “No, this is for a district administrator. Try again.”", correct: false, feedback: "That works, but now the wrong draft and the correction ride along with every message after them. One edit does the same job and leaves the chat clean." },
-      { key: "B", label: "Edit your original message to say who the reader is, and resend it.", correct: true, feedback: "The miss drops out of the conversation. You pay for one good ask instead of a bad one plus a fix, and the next draft isn't anchored to the wrong one." },
-      { key: "C", label: "Start a New chat and paste the draft in with the correction.", correct: false, feedback: "Heavier than it needs to be. Nothing in this chat is worth leaving behind except the one miss, and editing takes care of that." },
+      { key: "B", label: "Start a New chat and paste the draft in with the correction.", correct: false, feedback: "Heavier than it needs to be. Nothing in this chat is worth leaving behind except the one miss, and editing takes care of that." },
+      { key: "C", label: "Edit your original message to say who the reader is, and resend it.", correct: true, feedback: "The miss drops out of the conversation. You pay for one good ask instead of a bad one plus a fix, and the next draft isn't anchored to the wrong one." },
     ],
   },
   {
@@ -454,7 +454,7 @@ const JOB_AID_TEXT = [
 ].join("\n");
 
 const HABIT_MAP = [
-  ["One job, one chat", "When the job changes, start a New Chat."],
+  ["One job, one chat", "When the job changes, start a New chat."],
   ["Give AI what it needs, not everything you have", "Relevant beats plentiful, every time."],
   ["Be specific before you iterate", "A clearer first ask (RACE) saves three rounds of “no, not like that.”"],
   ["Match the horsepower to the job", "Two dials: which tool, and how hard it thinks."],
@@ -1066,7 +1066,7 @@ export function MakeItCount({ user, initial }: Props) {
               <p className="cb-kicker">Habit 1 of 5</p>
               <h1>One job, one chat</h1>
               <p className="cb-lede" style={{ marginTop: "0.9rem" }}>
-                A New Chat is a clean desk. Nothing from the last job is sitting there, so Claude isn't weighing an
+                A New chat is a clean desk. Nothing from the last job is sitting there, so Claude isn't weighing an
                 HR question against your customer email.
               </p>
               <p>
@@ -1089,8 +1089,8 @@ export function MakeItCount({ user, initial }: Props) {
                 onChange={(k) => patch({ h1: k })}
                 options={[
                   { key: "A", label: "Keep going here so Claude remembers how you like things.", correct: false, feedback: "You don't need one giant conversation for that. Tell Claude what you want in the new chat. That costs one sentence and gets you a clean desk." },
-                  { key: "B", label: "Start a New Chat for the analysis.", correct: true, feedback: "The job changed, so the desk should too. Everything from earlier stays in your history if you need it; it just stops being re-read on every message." },
-                  { key: "C", label: "Ask Claude to ignore everything above.", correct: false, feedback: "Reasonable instinct, but it doesn't clear the desk. It adds one more instruction to it. A New Chat is the cleaner and faster move." },
+                  { key: "B", label: "Start a New chat for the analysis.", correct: true, feedback: "The job changed, so the desk should too. Everything from earlier stays in your history if you need it; it just stops being re-read on every message." },
+                  { key: "C", label: "Ask Claude to ignore everything above.", correct: false, feedback: "Reasonable instinct, but it doesn't clear the desk. It adds one more instruction to it. A New chat is the cleaner and faster move." },
                 ]}
               />
               {a.h1 && (
@@ -1453,7 +1453,7 @@ export function MakeItCount({ user, initial }: Props) {
                 <ArrowRight size={16} className="cb-flow-arrow" aria-hidden="true" />
                 <div className="cb-flow-step" data-hot="true"><b>Handoff</b>Goal, verified facts, decisions, constraints, open questions, next step.</div>
                 <ArrowRight size={16} className="cb-flow-arrow" aria-hidden="true" />
-                <div className="cb-flow-step"><b>New Chat</b>Paste the handoff in. Clean desk, useful material.</div>
+                <div className="cb-flow-step"><b>New chat</b>Paste the handoff in. Clean desk, useful material.</div>
                 <ArrowRight size={16} className="cb-flow-arrow" aria-hidden="true" />
                 <div className="cb-flow-step"><b>Continue</b>Start the next phase with what matters and nothing else.</div>
               </div>
