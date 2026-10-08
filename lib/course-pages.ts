@@ -5,17 +5,28 @@
 export type Chapter = { name: string; pages: string[] };
 
 export const CHAPTERS: Chapter[] = [
-  { name: "Why this course", pages: ["why-frame", "why-scenario"] },
-  { name: "How context works", pages: ["model-what", "model-desk", "model-three"] },
+  { name: "Why this course", pages: ["why-frame"] },
+  { name: "How context works", pages: ["model-what", "model-desk"] },
   {
     name: "Five habits",
     pages: ["habits-map", "h1", "h2", "h3a", "h3b", "h4a", "h4g", "h4b", "h4c", "h5"],
   },
   { name: "Spotting waste", pages: ["burn-challenge", "burn-tools", "burn-surfaces", "burn-checks"] },
-  { name: "Requesting more", pages: ["more-why", "more-ask"] },
+  { name: "Requesting more", pages: ["more-ask"] },
   { name: "Check for knowledge", pages: ["final"] },
   { name: "Job aid", pages: ["done"] },
 ];
+
+/**
+ * Pages that no longer exist, and the page that absorbed each one. Saved
+ * progress and bookmarked URLs that point at them land on the replacement.
+ * Keep in step with drizzle/0004_course_pages.sql, which rewrites stored rows.
+ */
+export const LEGACY_PAGES: Record<string, string> = {
+  "why-scenario": "why-frame",
+  "model-three": "model-desk",
+  "more-why": "more-ask",
+};
 
 export type PageRef = { key: string; ci: number; pi: number; of: number; index: number };
 
@@ -26,10 +37,8 @@ CHAPTERS.forEach((c, ci) =>
 
 export const PAGE_TITLES: Record<string, string> = {
   "why-frame": "What this course is for",
-  "why-scenario": "Check: what counts as good usage",
   "model-what": "How context works",
   "model-desk": "What belongs on the desk",
-  "model-three": "Three things to keep in mind",
   "habits-map": "The five habits",
   h1: "Habit 1 · One job, one chat",
   h2: "Habit 2 · What it needs, not everything",
@@ -43,9 +52,8 @@ export const PAGE_TITLES: Record<string, string> = {
   "burn-challenge": "Spotting a mismatch",
   "burn-tools": "What runs without you",
   "burn-surfaces": "Switching things off",
-  "burn-checks": "Four things to check",
-  "more-why": "When more usage is right",
-  "more-ask": "How to ask for more",
+  "burn-checks": "Your daily routine",
+  "more-ask": "When and how to ask for more",
   final: "Apply your learnings",
   done: "Job aid: the five-second check",
 };
@@ -68,6 +76,14 @@ export function chapterOf(key: string): string {
 
 export function isPageKey(key: string): boolean {
   return PAGES.some((p) => p.key === key);
+}
+
+/** A current page key for `key`, following LEGACY_PAGES; null if it was never a page. */
+export function resolvePageKey(key: string | null | undefined): string | null {
+  if (!key) return null;
+  if (isPageKey(key)) return key;
+  const moved = LEGACY_PAGES[key];
+  return moved && isPageKey(moved) ? moved : null;
 }
 
 export function pageUrl(key: string): string {

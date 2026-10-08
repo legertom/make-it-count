@@ -13,7 +13,6 @@ import { clearCompletionAction, markCompleteAction, signOutAction, submitRatingA
 /* ------------------------------------------------------------------ */
 
 export type CourseAnswers = {
-  s1: string | null;
   placed: string[];
   h1: string | null;
   fkey: string;
@@ -34,7 +33,6 @@ export type CourseAnswers = {
 };
 
 const INITIAL: CourseAnswers = {
-  s1: null,
   placed: [],
   h1: null,
   fkey: "Role",
@@ -337,7 +335,7 @@ const SURFACES = [
     name: "Claude chat",
     rel: "Where most of us work",
     steps: [
-      { b: "Open the + menu, bottom left of the message box.", s: "Go to Connectors and switch off anything this conversation has no business reaching for. It's a toggle per conversation, so nothing you do here disconnects anything." },
+      { b: "Open the + menu, bottom left of the message box.", s: "Go to Connectors and switch off anything this conversation has no business reaching for. Web search is a switch in the same menu, and the same rule applies: off unless the job needs something current. It's all per conversation, so nothing you do here disconnects anything." },
       { b: "While you're in there, look at Tool access.", s: "It controls how your connectors get loaded. If you've connected a lot of things, pick the option that loads them only when they're needed instead of all of them at the start." },
       { b: "Do it before your first message.", s: "This is the whole trick. Five seconds at the top of a conversation, and you've decided what this piece of work is allowed to touch." },
     ],
@@ -394,11 +392,11 @@ const FINAL: { prompt: string; options: Option[] }[] = [
     ],
   },
   {
-    prompt: "You need Claude to work from one current policy document. Your Project contains that document plus eleven older versions of it.",
+    prompt: "Claude's first draft of your email missed the mark, because your ask never said who it was for.",
     options: [
-      { key: "A", label: "Leave them all in. More context, better answer.", correct: false, feedback: "Eleven superseded versions of the same policy is the clutter most likely to produce a confidently outdated answer. More isn't better when it contradicts itself." },
-      { key: "B", label: "Clean up the Project, or point Claude at the current document for this chat.", correct: true, feedback: "Either move works. Relevance is what makes context valuable, and old versions of the same document are the clearest case of context that costs without helping." },
-      { key: "C", label: "Ask Claude to figure out which version is current.", correct: false, feedback: "It might well get it right, but you'd be paying for a puzzle you could have solved in ten seconds, and you'd still have to check." },
+      { key: "A", label: "Reply: “No, this is for a district administrator. Try again.”", correct: false, feedback: "That works, but now the wrong draft and the correction ride along with every message after them. One edit does the same job and leaves the chat clean." },
+      { key: "B", label: "Edit your original message to say who the reader is, and resend it.", correct: true, feedback: "The miss drops out of the conversation. You pay for one good ask instead of a bad one plus a fix, and the next draft isn't anchored to the wrong one." },
+      { key: "C", label: "Start a New chat and paste the draft in with the correction.", correct: false, feedback: "Heavier than it needs to be. Nothing in this chat is worth leaving behind except the one miss, and editing takes care of that." },
     ],
   },
   {
@@ -419,21 +417,41 @@ const FINAL: { prompt: string; options: Option[] }[] = [
   },
 ];
 
-const JOB_AID_TEXT = `THE FIVE-SECOND CHECK — Make It Count
+/** The five-second check: the question, then the move. */
+const AID: [string, string][] = [
+  ["RIGHT TOOL?", "Gemini for quick, routine, high-volume work. Claude when the thinking is the hard part."],
+  ["RIGHT CHAT?", "New job, New chat. In Claude Code, /clear."],
+  ["ONLY THE CONTEXT I NEED?", "Two right files, not the folder. Text, not screenshots. Connectors and web search off unless this job uses them."],
+  ["RIGHT AMOUNT OF HORSEPOWER?", "Glance at the model and effort. They remember yesterday."],
+  ["CLEAR ASK?", "RACE: Role, Action, Context, Expectation. Say the length you want."],
+];
 
-1. RIGHT TOOL?          Gemini, Claude Sonnet, or Claude Opus?
-2. RIGHT CHAT?          New job = New Chat.
-3. ONLY THE CONTEXT I NEED?   Relevant beats plentiful — including what's switched on.
-4. RIGHT AMOUNT OF HORSEPOWER?  Match model + effort to the task.
-5. CLEAR ASK?           RACE: Role, Action, Context, Expectation.
+/** Moves for once you're in a conversation. */
+const IN_FLIGHT = [
+  "First answer missed? Edit the message and resend.",
+  "Long piece? Outline first, then the draft.",
+  "Revising? Ask for the changed paragraph, not the whole document.",
+  "Heading the wrong way? Stop it, fix the ask, go again.",
+  "Long-chat notice? Ask for the handoff, start a New chat, paste it in. In Claude Code, /compact.",
+];
 
-If yes: send it.
-
-Handoff prompt for a long conversation:
-"Create a compact handoff for a fresh conversation. Preserve the goal, verified facts, decisions we've made, important constraints, open questions, and the next step. Leave out brainstorming, dead ends, repeated discussion, and anything we no longer need."
-
-Low usage isn't the goal. Valuable usage is.
-Don't spend your workday thinking about tokens.`;
+const JOB_AID_TEXT = [
+  "THE FIVE-SECOND CHECK — Make It Count",
+  "",
+  "Before the first message",
+  ...AID.map(([q, m], i) => `${i + 1}. ${q.padEnd(29)} ${m}`),
+  "",
+  "If yes: send it.",
+  "",
+  "While you're in it",
+  ...IN_FLIGHT.map((t) => `- ${t}`),
+  "",
+  "Handoff prompt for a long conversation:",
+  `"${HANDOFF_PROMPT}"`,
+  "",
+  "Low usage isn't the goal. Valuable usage is.",
+  "Don't spend your workday thinking about tokens.",
+].join("\n");
 
 const HABIT_MAP = [
   ["One job, one chat", "When the job changes, start a New Chat."],
@@ -928,48 +946,24 @@ export function MakeItCount({ user, initial }: Props) {
                 </div>
               </div>
               <p>
-                The budget is a guardrail, not a scoreboard. It keeps usage visible and predictable; it isn't
-                something to compete on. If you're doing real work with Claude, you'll use a good chunk of it most
-                months. Some months you'll need more, and asking for more is a normal part of the job.
+                The budget is a guardrail, not a scoreboard. If you're doing real work with Claude, you'll use a
+                good chunk of it most months. Some months you'll need more, and asking for more is a normal part of
+                the job.
+              </p>
+              <p className="cb-pull">Low usage isn't the goal. Valuable usage is.</p>
+              <h2>What you'll leave with</h2>
+              <p style={{ marginTop: "0.5rem" }}>
+                A short list of moves: a few you make before the first message, a few for while you're in a
+                conversation. Each takes seconds, and most of them make the answer better, not just cheaper.
               </p>
               <div className="cb-tip">
                 <b>To see where you stand</b>
                 <p>
-                  In the Claude app, open <strong>Settings &rarr; Usage</strong>. It shows your usage this month
-                  and how you're tracking against your limit. In Cowork or Claude Code, type <code>/usage</code>.
+                  In the Claude app, open <strong>Settings &rarr; Usage</strong>. In Cowork or Claude Code, type{" "}
+                  <code>/usage</code>.
                 </p>
               </div>
-              <Nav page={page} go={go} note="About 15 minutes, start to finish" />
-            </>
-          )}
-
-          {K === "why-scenario" && (
-            <>
-              <h1>Check: what counts as good usage?</h1>
-              <Scenario
-                idPrefix="s1"
-                prompt="You spend most of your Claude budget producing an analysis that saves your team a week of work. What went wrong?"
-                value={a.s1}
-                onChange={(k) => patch({ s1: k })}
-                options={[
-                  { key: "A", label: "You should have stopped using Claude sooner.", correct: false, feedback: "Stopping would have cost the team a week to save a fraction of a budget. Usage that produces real work isn't the problem this course is trying to solve." },
-                  { key: "B", label: "Nothing. The work created value, and you can request more if you need it.", correct: true, feedback: "Exactly. The work produced value, which is what the budget is there to fund. Everything else in this course is about removing the usage that isn't buying you anything." },
-                  { key: "C", label: "Claude should only be used for short questions.", correct: false, feedback: "Short questions are often the ones Claude is least needed for. Substantial work is where it tends to earn its keep." },
-                ]}
-              />
-              {a.s1 && (
-                <>
-                  <p className="cb-pull">Low usage isn't the goal. Valuable usage is.</p>
-                  <h2>So here's what we're asking of you</h2>
-                  <ul style={{ marginTop: "0.7rem" }}>
-                    <li>Choose the right tool for the work in front of you.</li>
-                    <li>Avoid usage that isn't actually helping you.</li>
-                    <li>Use the right amount of AI horsepower, not the most available.</li>
-                    <li>Request more Claude when Claude is generating enough value to warrant it.</li>
-                  </ul>
-                </>
-              )}
-              <Nav page={page} go={go} label="Start the course" />
+              <Nav page={page} go={go} label="Start the course" note="About 20 minutes, start to finish" />
             </>
           )}
 
@@ -1000,33 +994,6 @@ export function MakeItCount({ user, initial }: Props) {
               <h1>What belongs on the desk?</h1>
               <p className="cb-lede" style={{ marginTop: "0.9rem" }}>Put things down and watch what changes.</p>
               <Desk placed={a.placed} setPlaced={(fn) => setA((x) => ({ ...x, placed: fn(x.placed) }))} />
-              <Nav page={page} go={go} />
-            </>
-          )}
-
-          {K === "model-three" && (
-            <>
-              <h1>Three things to keep in mind</h1>
-              <div className="cb-panel" style={{ marginTop: "1.4rem" }}>
-                <h3>Longer, more complex conversations generally use more.</h3>
-                <p style={{ margin: "0.3rem 0 0", fontSize: "0.95rem" }}>
-                  As a chat grows, there's more material for Claude to work with. That tends to increase usage.
-                </p>
-              </div>
-              <div className="cb-panel">
-                <h3>More context is not automatically better.</h3>
-                <p style={{ margin: "0.3rem 0 0", fontSize: "0.95rem" }}>
-                  One useful document can noticeably improve Claude's work. Five irrelevant ones added &ldquo;just
-                  in case&rdquo; make the job heavier without making it better, and sometimes make the answer worse.
-                </p>
-              </div>
-              <div className="cb-panel">
-                <h3>More powerful settings and features can use more.</h3>
-                <p style={{ margin: "0.3rem 0 0", fontSize: "0.95rem" }}>
-                  A stronger model, a higher effort level, deep research, and connected tools all draw more. Each of
-                  them is worth it when the task actually benefits.
-                </p>
-              </div>
               <p className="cb-pull">The easiest usage to cut is the context Claude never needed.</p>
               <Nav page={page} go={go} label="On to the habits" />
             </>
@@ -1069,6 +1036,13 @@ export function MakeItCount({ user, initial }: Props) {
                 a customer email, all of that gets re-read for whatever you ask next. That's more usage on every
                 message, and a desk piled with material that has nothing to do with the job in front of you.
               </p>
+              <div className="cb-tip">
+                <b>Do this</b>
+                <p>
+                  When the job changes, click <strong>New chat</strong> before you type anything. In Claude Code,
+                  type <code>/clear</code>. The old conversation stays in your history either way.
+                </p>
+              </div>
               <Scenario
                 idPrefix="h1"
                 prompt="One conversation has already carried this morning's survey analysis, a quick HR question, and a customer email. Now you need a fresh analysis for a different customer. What's the strongest move?"
@@ -1119,6 +1093,13 @@ export function MakeItCount({ user, initial }: Props) {
                 The second one isn't just lighter. It's more likely to produce the email you actually wanted, because
                 nothing is competing for Claude's attention.
               </p>
+              <div className="cb-tip">
+                <b>Do this</b>
+                <p>
+                  Attach the two files that matter, or paste just the section you're working from. And paste text
+                  rather than a screenshot of it: a picture of a table costs more to read and reads worse.
+                </p>
+              </div>
               <h2 style={{ marginTop: "1.8rem" }}>A Project is a filing cabinet, not a junk drawer</h2>
               <ul style={{ marginTop: "0.7rem" }}>
                 <li>Use one for reference material that genuinely repeats across related work.</li>
@@ -1169,6 +1150,15 @@ export function MakeItCount({ user, initial }: Props) {
               <div className="cb-panel" role="status">
                 <h4>{a.fkey}</h4>
                 <p style={{ margin: "0.25rem 0 0", fontSize: "0.95rem" }}>{RACE.find((f) => f.k === a.fkey)?.d}</p>
+              </div>
+              <div className="cb-tip">
+                <b>Do this</b>
+                <p>
+                  If the first answer misses because the ask was unclear, hover over your message, choose{" "}
+                  <strong>Edit</strong>, fix it, and resend. The miss drops out of the conversation instead of
+                  riding along with every message after it. On anything long, ask for an outline first: fixing ten
+                  lines is cheaper than fixing two thousand words.
+                </p>
               </div>
               <p className="cb-pull" style={{ marginTop: "1.5rem" }}>Specific does not mean long.</p>
               <Nav page={page} go={go} label="Try it" />
@@ -1360,10 +1350,16 @@ export function MakeItCount({ user, initial }: Props) {
                 <p style={{ margin: "0.4rem 0 0", fontSize: "0.95rem" }}>{EFFORTS.find((e) => e.id === a.effort)?.d}</p>
               </div>
               <p style={{ marginTop: "1.1rem" }}>
-                Each model has a recommended level marked as the default, and effort levels vary by model. Your
-                selection sticks between conversations, so a quick glance at the model name before a routine task is
-                a genuinely useful habit.
+                Each model has a recommended level marked as the default, and effort levels vary by model.
               </p>
+              <div className="cb-tip">
+                <b>Do this</b>
+                <p>
+                  Glance at the model name next to the send button before your first message. The selection sticks
+                  between conversations, so yesterday's Opus at Max is what today's quick edit runs on unless you
+                  change it.
+                </p>
+              </div>
               <Nav page={page} go={go} label="Check for knowledge" />
             </>
           )}
@@ -1426,6 +1422,14 @@ export function MakeItCount({ user, initial }: Props) {
                 This works especially well at a phase change: research to writing, brainstorming to execution,
                 analysis to presentation, reviewing to finalizing.
               </p>
+              <div className="cb-tip">
+                <b>Do this</b>
+                <p>
+                  When Claude shows the notice that long chats use your limits faster, that's the cue. Ask for the
+                  handoff, start a New chat, paste it in. In Claude Code, <code>/compact</code> does the same job in
+                  place.
+                </p>
+              </div>
               <p>
                 You're not erasing the work. The old chat is still in your history. You're just carrying forward the
                 useful state instead of the whole trip.
@@ -1495,39 +1499,28 @@ export function MakeItCount({ user, initial }: Props) {
               <p className="cb-lede" style={{ marginTop: "0.9rem" }}>
                 Connectors link Claude to the places your work already lives: Drive, Gmail, Calendar, Jira,
                 Slack. They're genuinely useful, and they're the one part of this course where the cost is
-                invisible and nothing in the interface warns you about it.
+                invisible.
               </p>
               <p>
-                Here's what happens. When a connector is switched on, Claude can use it in any conversation where
-                it judges the material might be relevant. It does this at its own discretion: there's no step
-                where it checks with you first, and nothing in the interface shows you what it cost. So a
-                connector you never meant to use in a conversation can still run in it, and quietly drive up your
-                usage.
+                When a connector is switched on, Claude can use it in any conversation where it judges the
+                material might be relevant. It doesn't check with you first, and nothing in the interface shows
+                you what it cost. Web search works the same way. That's how these tools work right now, not a
+                mistake anyone is making, but it does mean that deciding what a conversation can reach for is
+                your call, and it has to happen up front.
               </p>
               <div className="cb-pull">A connector that's switched on isn't waiting to be picked up. It's permission to go and fetch.</div>
-              <Feedback tone="info" title="This one isn't on you">
-                This is how these tools work right now, not a mistake anyone is making. It's a known rough edge,
-                and the part that controls how connectors get loaded is improving. What hasn't changed is that
-                Claude decides on its own when a connector looks relevant &mdash; so deciding up front what a
-                conversation can reach for is the part that stays your call.
-              </Feedback>
               <h2 style={{ marginTop: "2rem" }}>Why one search costs more than one search</h2>
               <p style={{ marginTop: "0.6rem" }}>
-                Everything in a conversation gets sent again with every message you write. That's what makes
-                this compound. Say a search you didn't ask for happens early in a long chat:
+                Everything in a conversation gets sent again with every message you write, so a search you didn't
+                ask for early in a long chat gets paid for on every message after it.
               </p>
               <div className="cb-flow" aria-label="How one unwanted search compounds">
-                <div className="cb-flow-step"><b>Message 3</b>You ask something unrelated. Claude decides Drive might be relevant and pulls in six documents.</div>
+                <div className="cb-flow-step"><b>Message 3</b>Claude decides Drive might be relevant and pulls in six documents.</div>
                 <ArrowRight size={16} className="cb-flow-arrow" aria-hidden="true" />
-                <div className="cb-flow-step"><b>Messages 4 to 40</b>Those six documents are still in the conversation, so they go along with every message after it.</div>
+                <div className="cb-flow-step"><b>Messages 4 to 40</b>Those six documents go along with every message after it.</div>
                 <ArrowRight size={16} className="cb-flow-arrow" aria-hidden="true" />
                 <div className="cb-flow-step" data-hot="true"><b>The bill</b>One search you didn't want, paid for thirty-seven more times.</div>
               </div>
-              <p>
-                Do that a few times a week and it adds up to a real share of a month's budget. No single moment
-                of it looks like waste, and nothing stops to ask you &mdash; which is exactly why the only fix is
-                the one you make before the conversation starts.
-              </p>
 
               <div className="cb-ws">
                 <div className="cb-ws-h">Tuesday morning</div>
@@ -1565,9 +1558,9 @@ export function MakeItCount({ user, initial }: Props) {
               </div>
               {a.connectorsChecked && (
                 <Feedback tone="info" title="Before, not after">
-                  All of this only works in front of the conversation. Once a connector has fetched something,
-                  it's in the chat, and switching it off afterwards doesn't take it back out. If a conversation
-                  has already filled up with material you didn't want, that's Habit 1: start a new chat.
+                  Once a connector has fetched something, it's in the chat, and switching it off afterwards doesn't
+                  take it back out. If a conversation has already filled up with material you didn't want, that's
+                  Habit 1: start a new chat.
                 </Feedback>
               )}
               <Nav page={page} go={go} label="Where to switch things off" />
@@ -1578,8 +1571,8 @@ export function MakeItCount({ user, initial }: Props) {
             <>
               <h1>Switching things off</h1>
               <p className="cb-lede" style={{ marginTop: "0.9rem" }}>
-                The idea is the same everywhere: decide what this piece of work is allowed to reach for, before
-                you start. Where the switch lives depends on where you're working. Pick where you are.
+                Decide what this piece of work is allowed to reach for, before you start. Where the switch lives
+                depends on where you're working. Pick where you are.
               </p>
               <div className="cb-dial" role="group" aria-label="Choose where you're working">
                 {SURFACES.map((s) => (
@@ -1601,95 +1594,97 @@ export function MakeItCount({ user, initial }: Props) {
                 <b>The five-second version</b>
                 <p>
                   Before the first message: is anything switched on that this job has no business reaching for?
-                  Switch it off. You're not disconnecting it, you're just not bringing it to this
-                  particular piece of work.
+                  Switch it off. You're not disconnecting it. A connector that saves you ten minutes of copying and
+                  pasting is doing exactly what it should; the waste is connectors running on jobs that never
+                  needed them.
                 </p>
               </div>
-              <h2 style={{ marginTop: "2rem" }}>Don't go the other way either</h2>
-              <p style={{ marginTop: "0.6rem" }}>
-                None of this is an argument for disconnecting things. A connector that saves you ten minutes of
-                copying and pasting is doing exactly what it should, and the answer is better for having the
-                real source in front of it. The waste isn't connectors. It's connectors running on
-                jobs that never needed them.
-              </p>
-              <Nav page={page} go={go} />
+              <Nav page={page} go={go} label="Your daily routine" />
             </>
           )}
 
           {K === "burn-checks" && (
             <>
-              <h1>Four things to check</h1>
-              <div className="cb-checks" style={{ marginTop: "1.4rem" }}>
+              <h1>Your daily routine</h1>
+              <p className="cb-lede" style={{ marginTop: "0.9rem" }}>
+                The whole course as the moves you actually make. Four before you type, five while you're in a
+                conversation, three now and then.
+              </p>
+              <h2 style={{ marginTop: "1.8rem" }}>Before the first message</h2>
+              <div className="cb-checks">
                 <div className="cb-check">
-                  <b>Look at the conversation.</b>
-                  <span>Has one chat quietly become six unrelated jobs?</span>
+                  <b>New job, New chat.</b>
+                  <span>Has one chat quietly become six unrelated jobs? Start fresh. In Claude Code, <code>/clear</code>.</span>
                 </div>
                 <div className="cb-check">
-                  <b>Look at the model and effort.</b>
-                  <span>Is a routine task running on far more reasoning than it needs?</span>
+                  <b>Glance at the model and effort.</b>
+                  <span>They remember yesterday. A routine task running on Opus at Max is the most common mismatch there is.</span>
                 </div>
                 <div className="cb-check">
-                  <b>Look at what's switched on.</b>
-                  <span>Is a connector free to go fetch things this job never needed? Switch it off before you start.</span>
+                  <b>Switch off what this job can't use.</b>
+                  <span>Connectors and web search, per conversation, in the + menu. Or put it in the ask: &ldquo;work from the attached note, don't search Drive.&rdquo;</span>
                 </div>
                 <div className="cb-check">
-                  <b>Look at the Project.</b>
-                  <span>Is old or duplicate material still sitting in there?</span>
+                  <b>Two right files, not the folder.</b>
+                  <span>Paste the section, not the document. Paste text, not a screenshot of it.</span>
                 </div>
               </div>
-              <h2 style={{ marginTop: "2rem" }}>If you're curious about your own usage</h2>
-              <p style={{ marginTop: "0.6rem" }}>
-                In the Claude app, go to <strong>Settings &rarr; Usage</strong>. It shows your own usage and how
-                you're tracking against any spend limit set for you.
-              </p>
-              <div className="cb-tip">
-                <b>In Cowork or Claude Code? Type <code>/usage</code></b>
-                <p>
-                  Both have a shortcut. Type <code>/usage</code> into the message box for a snapshot of your plan
-                  limits and current session, without leaving what you're doing. Regular Claude chat doesn't have
-                  slash commands, so use Settings &rarr; Usage there.
-                </p>
+              <h2 style={{ marginTop: "1.8rem" }}>While you're in it</h2>
+              <div className="cb-checks">
+                <div className="cb-check">
+                  <b>Edit, don't pile on.</b>
+                  <span>First answer missed because the ask was unclear? Edit the message and resend. The miss drops out of the chat instead of riding along.</span>
+                </div>
+                <div className="cb-check">
+                  <b>Outline first, then the draft.</b>
+                  <span>On anything long, agree the shape in ten lines before Claude writes two thousand words.</span>
+                </div>
+                <div className="cb-check">
+                  <b>Ask for the change, not the whole thing.</b>
+                  <span>On a revision, &ldquo;just give me the new paragraph.&rdquo; Left to itself, Claude re-prints the entire document, and output is usage too.</span>
+                </div>
+                <div className="cb-check">
+                  <b>Stop a response that's heading the wrong way.</b>
+                  <span>Press stop, fix the ask, go again. Letting it finish so you can see how wrong it is costs the whole answer.</span>
+                </div>
+                <div className="cb-check">
+                  <b>Long-chat notice? That's the handoff cue.</b>
+                  <span>Ask for the compact handoff, start a New chat, paste it in. In Claude Code, <code>/compact</code>.</span>
+                </div>
               </div>
-              <p>
-                Don't keep it open all day. Check it when you're curious, when you're doing unusually heavy Claude
-                work, or when Claude tells you you're getting close to a limit.
-              </p>
+              <h2 style={{ marginTop: "1.8rem" }}>Now and then</h2>
+              <div className="cb-checks">
+                <div className="cb-check">
+                  <b>Default to short.</b>
+                  <span>Say the length you want in the ask (&ldquo;three bullets&rdquo;, &ldquo;one paragraph&rdquo;), or set it once as a standing preference under <strong>Settings &rarr; Profile</strong>.</span>
+                </div>
+                <div className="cb-check">
+                  <b>Tidy the Project.</b>
+                  <span>Old and duplicate versions of a document are the clutter most likely to produce a confidently outdated answer.</span>
+                </div>
+                <div className="cb-check">
+                  <b>Check your usage when you're curious.</b>
+                  <span><strong>Settings &rarr; Usage</strong> in the Claude app, or <code>/usage</code> in Cowork and Claude Code. Not all day: when the work is unusually heavy, or Claude says you're near a limit.</span>
+                </div>
+              </div>
               <Nav page={page} go={go} />
             </>
           )}
 
           {/* ================= SECTION 5 ================= */}
-          {K === "more-why" && (
-            <>
-              <h1>When more usage is the right call</h1>
-              <p className="cb-lede" style={{ marginTop: "0.9rem" }}>
-                Everything so far has been about not wasting Claude. This part is about not underusing it.
-                Sometimes Claude is simply the right tool for a big piece of work, and big work draws more than
-                routine work does. That's fine. It's what the budget is for.
-              </p>
-              <h2 style={{ marginTop: "1.8rem" }}>What that looks like around Clever</h2>
-              <div className="cb-uses">
-                <div className="cb-use"><b>Customer Success</b><span>Synthesizing a large body of customer feedback into real recommendations.</span></div>
-                <div className="cb-use"><b>Customer Education</b><span>Turning a complex product change into a coordinated set of customer-facing materials.</span></div>
-                <div className="cb-use"><b>People</b><span>Analyzing hundreds of open-ended responses from an employee survey.</span></div>
-                <div className="cb-use"><b>Product</b><span>Synthesizing research and conflicting stakeholder input ahead of an important decision.</span></div>
-                <div className="cb-use"><b>Operations</b><span>Working through a complicated process redesign end to end.</span></div>
-                <div className="cb-use"><b>Marketing</b><span>Developing a strategic narrative out of a large pile of research.</span></div>
-              </div>
-              <Nav page={page} go={go} label="How to ask" />
-            </>
-          )}
-
           {K === "more-ask" && (
             <>
-              <h1>How to ask for more</h1>
-              <p className="cb-pull" style={{ marginTop: "1.3rem" }}>
+              <h1>When and how to ask for more</h1>
+              <p className="cb-lede" style={{ marginTop: "0.9rem" }}>
+                Everything so far has been about not wasting Claude. This page is about not underusing it. Sometimes
+                Claude is simply the right tool for a big piece of work: synthesizing hundreds of survey responses,
+                reconciling conflicting research ahead of a decision, redesigning a process end to end. Big work
+                draws more than routine work, and that's what the budget is for.
+              </p>
+              <p className="cb-pull">
                 If you're using Claude intentionally and the work still needs more Claude, request more Claude.
               </p>
-              <p>
-                That isn't a failure, and it isn't gaming the budget. It's exactly what the request path is for.
-                There are two paths, depending on your team.
-              </p>
+              <p>That isn't a failure, and it isn't gaming the budget. There are two paths, depending on your team.</p>
               <div className="cb-checks" style={{ marginTop: "1.2rem" }}>
                 <div className="cb-check">
                   <b>Engineering: post in #claude-budget-escalations.</b>
@@ -1717,7 +1712,7 @@ export function MakeItCount({ user, initial }: Props) {
             <>
               <h1>Apply your learnings</h1>
               <p className="cb-lede" style={{ marginTop: "0.9rem" }}>
-                Five situations you'll recognize from real work at Clever. There's no score. Pick an answer, read
+                Six situations you'll recognize from real work at Clever. There's no score. Pick an answer, read
                 why, and move on.
               </p>
               <div className="cb-dots" aria-hidden="true" style={{ marginTop: "1.6rem" }}>
@@ -1762,10 +1757,13 @@ export function MakeItCount({ user, initial }: Props) {
               <p className="cb-lede" style={{ marginTop: "0.9rem" }}>Run through this before any piece of AI work that matters. Five questions, five seconds.</p>
               {!a.compact ? (
                 <div className="cb-aid">
-                  {["RIGHT TOOL?", "RIGHT CHAT?", "ONLY THE CONTEXT I NEED?", "RIGHT AMOUNT OF HORSEPOWER?", "CLEAR ASK?"].map((q, i) => (
+                  {AID.map(([q, m], i) => (
                     <div className="cb-aid-row" key={q}>
                       <span className="cb-aid-n">{i + 1}</span>
-                      <span className="cb-aid-q">{q}</span>
+                      <span className="cb-aid-text">
+                        <span className="cb-aid-q">{q}</span>
+                        <span className="cb-aid-m">{m}</span>
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -1773,6 +1771,16 @@ export function MakeItCount({ user, initial }: Props) {
                 <pre className="cb-pre">{JOB_AID_TEXT}</pre>
               )}
               <p style={{ fontSize: "1.15rem", fontWeight: 620, color: "var(--ink)", letterSpacing: "-0.01em" }}>If yes: send it.</p>
+              {!a.compact && (
+                <div className="cb-panel">
+                  <h3>While you're in it</h3>
+                  <ul style={{ margin: "0.5rem 0 0" }}>
+                    {IN_FLIGHT.map((t) => (
+                      <li key={t}>{t}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", margin: "1.4rem 0 0" }}>
                 <CopyButton text={JOB_AID_TEXT} label="Copy the job aid" />
                 <button type="button" className="cb-btn cb-btn-ghost" onClick={() => patch({ compact: !a.compact })}>
