@@ -578,11 +578,14 @@ function CourseRating({ initialRating, initialComment }: { initialRating: number
 
 function CompletionRecord({
   user,
+  eligible,
   initialCompletedAt,
   initialRating,
   initialRatingComment,
 }: {
   user: User;
+  /** Every situation in the final check is answered, so reaching this page is finishing the course. */
+  eligible: boolean;
   initialCompletedAt: string | null;
   initialRating: number | null;
   initialRatingComment: string | null;
@@ -590,17 +593,32 @@ function CompletionRecord({
   const [completedAt, setCompletedAt] = useState<string | null>(initialCompletedAt);
   const [error, setError] = useState(false);
   const [pending, start] = useTransition();
+  // Arriving already complete counts as the one attempt, so "Clear this" stays cleared.
+  const autoRef = useRef(Boolean(initialCompletedAt));
+  const [autoTried, setAutoTried] = useState(Boolean(initialCompletedAt));
 
-  const complete = () =>
-    start(async () => {
-      try {
-        const r = await markCompleteAction();
-        setCompletedAt(r.completedAt);
-        setError(false);
-      } catch {
-        setError(true);
-      }
-    });
+  const complete = useCallback(
+    () =>
+      start(async () => {
+        try {
+          const r = await markCompleteAction();
+          setCompletedAt(r.completedAt);
+          setError(false);
+        } catch {
+          setError(true);
+        }
+      }),
+    [start],
+  );
+
+  // People reached this page and never found the button, so they were never counted
+  // and never asked for feedback. Record it for them: once per visit, never after "Clear this".
+  useEffect(() => {
+    if (autoRef.current || completedAt || !eligible) return;
+    autoRef.current = true;
+    setAutoTried(true);
+    complete();
+  }, [completedAt, eligible, complete]);
 
   const clear = () =>
     start(async () => {
@@ -632,12 +650,33 @@ function CompletionRecord({
     );
   }
 
+  if (eligible && !error && (!autoTried || pending)) {
+    return (
+      <div className="cb-done-card" aria-busy="true">
+        <h3>Recording that you finished&hellip;</h3>
+        <p style={{ margin: "0.35rem 0 0", fontSize: "0.95rem" }} role="status">
+          You're signed in as <strong>{user.email}</strong>, so there's nothing to do. One moment.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="cb-done-card">
       <h3>Mark yourself complete</h3>
       <p style={{ margin: "0.35rem 0 0", fontSize: "0.95rem" }}>
-        You're signed in as <strong>{user.email}</strong>, so there's nothing to type. One click lets us know
-        you've been through it.
+        {eligible ? (
+          <>
+            You're signed in as <strong>{user.email}</strong>, so there's nothing to type. One click records that
+            you finished.
+          </>
+        ) : (
+          <>
+            You're signed in as <strong>{user.email}</strong>, so there's nothing to type. Answer the six situations
+            in Check for knowledge and this happens on its own; or, if you've been through the course another way,
+            one click lets us know.
+          </>
+        )}
       </p>
       <button type="button" className="cb-btn cb-btn-primary cb-btn-big" onClick={complete} disabled={pending}>
         {pending ? "Saving…" : "I'm done, record it"}
@@ -963,7 +1002,7 @@ export function MakeItCount({ user, initial }: Props) {
                   <code>/usage</code>.
                 </p>
               </div>
-              <Nav page={page} go={go} label="Start the course" note="About 20 minutes, start to finish" />
+              <Nav page={page} go={go} label="Start the course" note="About 30 minutes, start to finish" />
             </>
           )}
 
@@ -1793,6 +1832,7 @@ export function MakeItCount({ user, initial }: Props) {
 
               <CompletionRecord
                 user={user}
+                eligible={FINAL.every((_, i) => Boolean(a.fAns[i]))}
                 initialCompletedAt={initial.completedAt}
                 initialRating={initial.rating}
                 initialRatingComment={initial.ratingComment}

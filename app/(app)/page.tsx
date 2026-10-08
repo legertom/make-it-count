@@ -64,7 +64,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           <div className="cb-banner" role="status">That page is for course admins only.</div>
         )}
         <main className="cb-col">
-          <p className="cb-eyebrow">A twenty-minute course for everyone at Clever</p>
+          <p className="cb-eyebrow">A thirty-minute course for everyone at Clever</p>
           <h1>Make It Count: Getting the most out of your AI tokens</h1>
           <p className="cb-lede" style={{ marginTop: "0.9rem" }}>
             How to use Claude and Gemini on purpose: the right tool, a focused conversation, and the right amount of
