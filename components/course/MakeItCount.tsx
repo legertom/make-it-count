@@ -61,6 +61,15 @@ const CHECKED_FLAG = {
 
 type User = { email: string; name: string | null; image: string | null; isAdmin: boolean };
 
+/** The learner's completion record and rating, kept above the page switch so it survives navigation. */
+type Completion = {
+  completedAt: string | null;
+  rating: number | null;
+  ratingComment: string | null;
+  /** The automatic record has been attempted (or wasn't needed) this visit; never retried after "Clear this". */
+  autoTried: boolean;
+};
+
 type Props = {
   user: User;
   initial: {
@@ -366,8 +375,9 @@ const SURFACES = [
 /*  Section 6 — final scenarios                                        */
 /* ------------------------------------------------------------------ */
 
-const FINAL: { prompt: string; options: Option[] }[] = [
+const FINAL: { id: string; prompt: string; options: Option[] }[] = [
   {
+    id: "revise-paragraph",
     prompt: "Claude's 1,200-word draft of a customer announcement is nearly right. Two sentences in the third paragraph need to change.",
     options: [
       { key: "A", label: "Ask for just the revised paragraph, and drop it into your draft yourself.", correct: true, feedback: "Twenty seconds of your own editing instead of Claude re-printing everything. Output is usage too, and a document revised five times gets paid for six times the other way." },
@@ -376,6 +386,7 @@ const FINAL: { prompt: string; options: Option[] }[] = [
     ],
   },
   {
+    id: "conflicting-docs",
     prompt: "Three research documents disagree with each other, and you have to recommend a direction to leadership by Thursday.",
     options: [
       { key: "A", label: "Gemini, because it's unmetered and this is a lot of reading.", correct: false, feedback: "Volume isn't what makes this hard. The disagreement is. This is the kind of work where deeper reasoning earns its usage." },
@@ -384,6 +395,7 @@ const FINAL: { prompt: string; options: Option[] }[] = [
     ],
   },
   {
+    id: "handoff",
     prompt: "You've spent two hours researching in one Claude conversation. Now you need to write the actual deliverable.",
     options: [
       { key: "A", label: "Keep going in the same chat so nothing gets lost.", correct: false, feedback: "Nothing is lost either way. That chat stays in your history. But two hours of exploration, including the paths you abandoned, comes along for the ride." },
@@ -392,6 +404,7 @@ const FINAL: { prompt: string; options: Option[] }[] = [
     ],
   },
   {
+    id: "edit-resend",
     prompt: "Claude's first draft of your email missed the mark, because your ask never said who it was for.",
     options: [
       { key: "A", label: "Reply: “No, this is for a district administrator. Try again.”", correct: false, feedback: "That works, but now the wrong draft and the correction ride along with every message after them. One edit does the same job and leaves the chat clean." },
@@ -400,6 +413,7 @@ const FINAL: { prompt: string; options: Option[] }[] = [
     ],
   },
   {
+    id: "connectors",
     prompt: "You have eight connectors switched on. Today's job is tightening one paragraph of a Slack update.",
     options: [
       { key: "A", label: "Leave them. You won't use them, so they aren't costing anything.", correct: false, feedback: "Reasonable, and it's the way these tools actually behave that makes it wrong. Switched on means Claude may go and use them without asking, and whatever it fetches stays in the conversation and rides along with every message after it." },
@@ -408,6 +422,7 @@ const FINAL: { prompt: string; options: Option[] }[] = [
     ],
   },
   {
+    id: "request-more",
     prompt: "You've been working deliberately all month on a genuinely valuable analysis, and you're approaching your monthly limit in Claude.",
     options: [
       { key: "A", label: "Stop using Claude and finish it some other way.", correct: false, feedback: "The budget isn't a stopping signal for valuable work. Switching tools mid-analysis usually costs you more time than the usage was worth." },
@@ -426,13 +441,33 @@ const AID: [string, string][] = [
   ["CLEAR ASK?", "RACE: Role, Action, Context, Expectation. Say the length you want."],
 ];
 
-/** Moves for once you're in a conversation. */
-const IN_FLIGHT = [
-  "First answer missed? Edit the message and resend.",
-  "Long piece? Outline first, then the draft.",
-  "Revising? Ask for the changed paragraph, not the whole document.",
-  "Heading the wrong way? Stop it, fix the ask, go again.",
-  "Long-chat notice? Ask for the handoff, start a New chat, paste it in. In Claude Code, /compact.",
+/** Moves for once you're in a conversation: the routine page shows the long form, the job aid the short one. */
+const IN_FLIGHT: { t: string; s: React.ReactNode; aid: string }[] = [
+  {
+    t: "Edit, don't pile on.",
+    s: <>First answer missed because the ask was unclear? Edit the message and resend. The miss drops out of the chat instead of riding along.</>,
+    aid: "First answer missed? Edit the message and resend.",
+  },
+  {
+    t: "Outline first, then the draft.",
+    s: <>On anything long, agree the shape in ten lines before Claude writes two thousand words.</>,
+    aid: "Long piece? Outline first, then the draft.",
+  },
+  {
+    t: "Ask for the change, not the whole thing.",
+    s: <>On a revision, &ldquo;just give me the new paragraph.&rdquo; Left to itself, Claude re-prints the entire document, and output is usage too.</>,
+    aid: "Revising? Ask for the changed paragraph, not the whole document.",
+  },
+  {
+    t: "Stop a response that's heading the wrong way.",
+    s: <>Press stop, fix the ask, go again. Letting it finish so you can see how wrong it is costs the whole answer.</>,
+    aid: "Heading the wrong way? Stop it, fix the ask, go again.",
+  },
+  {
+    t: "Long-chat notice? That's the handoff cue.",
+    s: <>Ask for the compact handoff, start a New chat, paste it in. In Claude Code, <code>/compact</code>.</>,
+    aid: "Long-chat notice? Ask for the handoff, start a New chat, paste it in. In Claude Code, /compact.",
+  },
 ];
 
 const JOB_AID_TEXT = [
@@ -444,7 +479,7 @@ const JOB_AID_TEXT = [
   "If yes: send it.",
   "",
   "While you're in it",
-  ...IN_FLIGHT.map((t) => `- ${t}`),
+  ...IN_FLIGHT.map((m) => `- ${m.aid}`),
   "",
   "Handoff prompt for a long conversation:",
   `"${HANDOFF_PROMPT}"`,
@@ -452,6 +487,22 @@ const JOB_AID_TEXT = [
   "Low usage isn't the goal. Valuable usage is.",
   "Don't spend your workday thinking about tokens.",
 ].join("\n");
+
+/**
+ * Final-check answers used to be keyed by position. These positions still hold the
+ * same scenario; the rest were swapped and start blank.
+ */
+const LEGACY_FINAL_KEYS: Record<string, string> = { "1": "conflicting-docs", "2": "handoff", "4": "connectors", "5": "request-more" };
+
+function upgradeAnswers(stored: Partial<CourseAnswers>): Partial<CourseAnswers> {
+  if (!stored.fAns) return stored;
+  const fAns: Record<string, string> = {};
+  for (const [k, v] of Object.entries(stored.fAns)) {
+    const id = /^\d+$/.test(k) ? LEGACY_FINAL_KEYS[k] : k;
+    if (id) fAns[id] = v;
+  }
+  return { ...stored, fAns };
+}
 
 const HABIT_MAP = [
   ["One job, one chat", "When the job changes, start a New chat."],
@@ -467,14 +518,17 @@ const HABIT_MAP = [
 
 const STAR_WORDS = ["", "Not useful", "Meh", "Fine", "Good", "Excellent"];
 
-function CourseRating({ initialRating, initialComment }: { initialRating: number | null; initialComment: string | null }) {
-  const [saved, setSaved] = useState<{ rating: number; comment: string } | null>(
-    initialRating ? { rating: initialRating, comment: initialComment ?? "" } : null,
-  );
-  const [editing, setEditing] = useState(initialRating === null);
-  const [rating, setRating] = useState<number>(initialRating ?? 0);
+function CourseRating({
+  saved,
+  onSaved,
+}: {
+  saved: { rating: number; comment: string } | null;
+  onSaved: (rating: number, comment: string) => void;
+}) {
+  const [editing, setEditing] = useState(saved === null);
+  const [rating, setRating] = useState<number>(saved?.rating ?? 0);
   const [hover, setHover] = useState(0);
-  const [comment, setComment] = useState(initialComment ?? "");
+  const [comment, setComment] = useState(saved?.comment ?? "");
   const [error, setError] = useState(false);
   const [pending, start] = useTransition();
 
@@ -482,7 +536,7 @@ function CourseRating({ initialRating, initialComment }: { initialRating: number
     start(async () => {
       try {
         await submitRatingAction(rating, comment);
-        setSaved({ rating, comment: comment.trim() });
+        onSaved(rating, comment.trim());
         setEditing(false);
         setError(false);
       } catch {
@@ -579,52 +633,46 @@ function CourseRating({ initialRating, initialComment }: { initialRating: number
 function CompletionRecord({
   user,
   eligible,
-  initialCompletedAt,
-  initialRating,
-  initialRatingComment,
+  completion,
+  update,
 }: {
   user: User;
   /** Every situation in the final check is answered, so reaching this page is finishing the course. */
   eligible: boolean;
-  initialCompletedAt: string | null;
-  initialRating: number | null;
-  initialRatingComment: string | null;
+  completion: Completion;
+  update: (patch: Partial<Completion>) => void;
 }) {
-  const [completedAt, setCompletedAt] = useState<string | null>(initialCompletedAt);
+  const { completedAt, autoTried } = completion;
   const [error, setError] = useState(false);
   const [pending, start] = useTransition();
-  // Arriving already complete counts as the one attempt, so "Clear this" stays cleared.
-  const autoRef = useRef(Boolean(initialCompletedAt));
-  const [autoTried, setAutoTried] = useState(Boolean(initialCompletedAt));
 
   const complete = useCallback(
     () =>
       start(async () => {
         try {
           const r = await markCompleteAction();
-          setCompletedAt(r.completedAt);
+          update({ completedAt: r.completedAt });
           setError(false);
         } catch {
           setError(true);
         }
       }),
-    [start],
+    [start, update],
   );
 
   // People reached this page and never found the button, so they were never counted
-  // and never asked for feedback. Record it for them: once per visit, never after "Clear this".
+  // and never asked for feedback. Record it for them: once, and never after "Clear this".
   useEffect(() => {
-    if (autoRef.current || completedAt || !eligible) return;
-    autoRef.current = true;
-    setAutoTried(true);
+    if (autoTried || completedAt || !eligible) return;
+    update({ autoTried: true });
     complete();
-  }, [completedAt, eligible, complete]);
+  }, [autoTried, completedAt, eligible, complete, update]);
 
   const clear = () =>
     start(async () => {
       try {
         await clearCompletionAction();
-        setCompletedAt(null);
+        update({ completedAt: null, autoTried: true });
       } catch {
         setError(true);
       }
@@ -645,7 +693,10 @@ function CompletionRecord({
             </button>
           </div>
         </div>
-        <CourseRating initialRating={initialRating} initialComment={initialRatingComment} />
+        <CourseRating
+          saved={completion.rating ? { rating: completion.rating, comment: completion.ratingComment ?? "" } : null}
+          onSaved={(rating, comment) => update({ rating, ratingComment: comment })}
+        />
       </div>
     );
   }
@@ -759,8 +810,15 @@ export function MakeItCount({ user, initial }: Props) {
   const searchParams = useSearchParams();
   const page = pageIndex(params.page ?? "why-frame");
   const notice = searchParams.get("denied") === "admin" ? "That page is for course admins only." : null;
-  const [a, setA] = useState<CourseAnswers>(() => ({ ...INITIAL, ...initial.answers }));
+  const [a, setA] = useState<CourseAnswers>(() => ({ ...INITIAL, ...upgradeAnswers(initial.answers) }));
   const patch = (p: Partial<CourseAnswers>) => setA((x) => ({ ...x, ...p }));
+  const [completion, setCompletion] = useState<Completion>({
+    completedAt: initial.completedAt,
+    rating: initial.rating,
+    ratingComment: initial.ratingComment,
+    autoTried: Boolean(initial.completedAt),
+  });
+  const updateCompletion = useCallback((p: Partial<Completion>) => setCompletion((c) => ({ ...c, ...p })), []);
 
   /* ---- learner telemetry: page timing + progress sync ---- */
   const answersRef = useRef(a);
@@ -1670,26 +1728,12 @@ export function MakeItCount({ user, initial }: Props) {
               </div>
               <h2 style={{ marginTop: "1.8rem" }}>While you're in it</h2>
               <div className="cb-checks">
-                <div className="cb-check">
-                  <b>Edit, don't pile on.</b>
-                  <span>First answer missed because the ask was unclear? Edit the message and resend. The miss drops out of the chat instead of riding along.</span>
-                </div>
-                <div className="cb-check">
-                  <b>Outline first, then the draft.</b>
-                  <span>On anything long, agree the shape in ten lines before Claude writes two thousand words.</span>
-                </div>
-                <div className="cb-check">
-                  <b>Ask for the change, not the whole thing.</b>
-                  <span>On a revision, &ldquo;just give me the new paragraph.&rdquo; Left to itself, Claude re-prints the entire document, and output is usage too.</span>
-                </div>
-                <div className="cb-check">
-                  <b>Stop a response that's heading the wrong way.</b>
-                  <span>Press stop, fix the ask, go again. Letting it finish so you can see how wrong it is costs the whole answer.</span>
-                </div>
-                <div className="cb-check">
-                  <b>Long-chat notice? That's the handoff cue.</b>
-                  <span>Ask for the compact handoff, start a New chat, paste it in. In Claude Code, <code>/compact</code>.</span>
-                </div>
+                {IN_FLIGHT.map((m) => (
+                  <div className="cb-check" key={m.t}>
+                    <b>{m.t}</b>
+                    <span>{m.s}</span>
+                  </div>
+                ))}
               </div>
               <h2 style={{ marginTop: "1.8rem" }}>Now and then</h2>
               <div className="cb-checks">
@@ -1766,8 +1810,8 @@ export function MakeItCount({ user, initial }: Props) {
                 idPrefix={`f${a.fIdx}`}
                 prompt={FINAL[a.fIdx].prompt}
                 options={FINAL[a.fIdx].options}
-                value={a.fAns[a.fIdx] ?? null}
-                onChange={(k) => setA((x) => ({ ...x, fAns: { ...x.fAns, [x.fIdx]: k } }))}
+                value={a.fAns[FINAL[a.fIdx].id] ?? null}
+                onChange={(k) => setA((x) => ({ ...x, fAns: { ...x.fAns, [FINAL[x.fIdx].id]: k } }))}
               />
               <div className="cb-nav">
                 <button type="button" className="cb-btn cb-btn-ghost" onClick={() => (a.fIdx === 0 ? go(page - 1) : patch({ fIdx: a.fIdx - 1 }))}>
@@ -1776,14 +1820,14 @@ export function MakeItCount({ user, initial }: Props) {
                 <button
                   type="button"
                   className="cb-btn cb-btn-primary"
-                  disabled={!a.fAns[a.fIdx]}
+                  disabled={!a.fAns[FINAL[a.fIdx].id]}
                   onClick={() => (a.fIdx < FINAL.length - 1 ? patch({ fIdx: a.fIdx + 1 }) : go(page + 1))}
                 >
                   {a.fIdx < FINAL.length - 1 ? "Next situation" : "Finish"}
                   <ArrowRight size={15} aria-hidden="true" />
                 </button>
                 <span className="cb-nav-note">
-                  {Object.keys(a.fAns).length} of {FINAL.length} answered
+                  {FINAL.filter((f) => a.fAns[f.id]).length} of {FINAL.length} answered
                 </span>
               </div>
             </>
@@ -1814,8 +1858,8 @@ export function MakeItCount({ user, initial }: Props) {
                 <div className="cb-panel">
                   <h3>While you're in it</h3>
                   <ul style={{ margin: "0.5rem 0 0" }}>
-                    {IN_FLIGHT.map((t) => (
-                      <li key={t}>{t}</li>
+                    {IN_FLIGHT.map((m) => (
+                      <li key={m.t}>{m.aid}</li>
                     ))}
                   </ul>
                 </div>
@@ -1832,10 +1876,9 @@ export function MakeItCount({ user, initial }: Props) {
 
               <CompletionRecord
                 user={user}
-                eligible={FINAL.every((_, i) => Boolean(a.fAns[i]))}
-                initialCompletedAt={initial.completedAt}
-                initialRating={initial.rating}
-                initialRatingComment={initial.ratingComment}
+                eligible={FINAL.every((f) => Boolean(a.fAns[f.id]))}
+                completion={completion}
+                update={updateCompletion}
               />
 
               <div className="cb-panel" style={{ marginTop: "2.2rem" }}>

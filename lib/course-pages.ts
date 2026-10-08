@@ -86,6 +86,17 @@ export function resolvePageKey(key: string | null | undefined): string | null {
   return moved && isPageKey(moved) ? moved : null;
 }
 
+/**
+ * A learner's furthest page as an index in the current page order. Trusts the page
+ * key over the stored integer, so rows written against an older order (or by an
+ * old client during a deploy) still read correctly, and never indexes past the end.
+ */
+export function furthestIndexOf(row: { furthestIndex: number | null; furthestPage: string | null }): number {
+  const key = resolvePageKey(row.furthestPage);
+  if (key) return pageIndex(key);
+  return Math.max(0, Math.min(PAGE_COUNT - 1, row.furthestIndex ?? 0));
+}
+
 export function pageUrl(key: string): string {
   return `/course/${key}`;
 }

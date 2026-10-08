@@ -6,7 +6,7 @@ import { ResetLearnerButton } from "@/components/admin/ResetLearnerButton";
 import { LearnerRoster } from "@/components/admin/LearnerRoster";
 import { SortableTable, type SortableRow } from "@/components/admin/SortableTable";
 import { adminEmails, isAdminEmail, normalizeEmail } from "@/lib/access";
-import { pageTitle } from "@/lib/course-pages";
+import { furthestIndexOf, pageTitle } from "@/lib/course-pages";
 import { listLearners, listRatings, pageStats } from "@/lib/db/queries";
 import { fmtDate, fmtDuration, initials, timeAgo } from "@/lib/format";
 import { elapsedMs, overview, pageRows, progressLabel } from "@/lib/learning-stats";
@@ -40,7 +40,7 @@ export default async function LearnersPage() {
       },
       sort: {
         person: (l.name || l.email).toLowerCase(),
-        progress: l.completedAt ? 1000 : statusRank === 0 ? -1 : (l.furthestIndex ?? -1),
+        progress: l.completedAt ? 1000 : statusRank === 0 ? -1 : furthestIndexOf(l),
         active: l.activeMs,
         elapsed,
         lastLogin: l.lastLoginAt.getTime(),

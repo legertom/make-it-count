@@ -1,4 +1,4 @@
-import { PAGES, PAGE_COUNT } from "@/lib/course-pages";
+import { PAGES, PAGE_COUNT, furthestIndexOf } from "@/lib/course-pages";
 import type { LearnerRow, PageStat } from "@/lib/db/queries";
 
 /**
@@ -80,7 +80,7 @@ export function pageRows(learners: LearnerRow[], stats: PageStat[]): PageRow[] {
   const started = learners.filter((l) => l.startedAt);
   const byKey = new Map(stats.map((s) => [s.pageKey, s]));
   return PAGES.map((p) => {
-    const reached = started.filter((l) => (l.furthestIndex ?? -1) >= p.index).length;
+    const reached = started.filter((l) => furthestIndexOf(l) >= p.index).length;
     const s = byKey.get(p.key);
     return {
       key: p.key,
@@ -98,7 +98,7 @@ export function pageRows(learners: LearnerRow[], stats: PageStat[]): PageRow[] {
 export function progressLabel(l: LearnerRow): { pct: number; text: string; state: "done" | "active" | "new" } {
   if (l.completedAt) return { pct: 1, text: "Completed", state: "done" };
   if (!l.startedAt) return { pct: 0, text: "Not started", state: "new" };
-  const idx = l.furthestIndex ?? 0;
+  const idx = furthestIndexOf(l);
   return { pct: (idx + 1) / PAGE_COUNT, text: `${idx + 1} of ${PAGE_COUNT} pages`, state: "active" };
 }
 

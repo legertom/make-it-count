@@ -4,7 +4,7 @@ import { ArrowRight, Check } from "lucide-react";
 import { auth } from "@/auth";
 import { signOutAction } from "@/app/(app)/actions";
 import { normalizeEmail } from "@/lib/access";
-import { CHAPTERS, PAGES, PAGE_COUNT, pageIndex, pageTitle, pageUrl, resolvePageKey } from "@/lib/course-pages";
+import { CHAPTERS, PAGES, PAGE_COUNT, furthestIndexOf, pageIndex, pageTitle, pageUrl, resolvePageKey } from "@/lib/course-pages";
 import { getProgress } from "@/lib/db/queries";
 import { fmtDate, initials } from "@/lib/format";
 
@@ -20,7 +20,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const user = session.user;
   const currentKey = resolvePageKey(progress?.currentPage) ?? "why-frame";
   const currentIndex = pageIndex(currentKey);
-  const furthest = Math.max(progress?.furthestIndex ?? 0, currentIndex);
+  const furthest = Math.max(progress ? furthestIndexOf(progress) : 0, currentIndex);
   const started = Boolean(progress);
   const completedAt = progress?.completedAt ?? null;
   const pct = completedAt ? 100 : started ? Math.round(((furthest + 1) / PAGE_COUNT) * 100) : 0;

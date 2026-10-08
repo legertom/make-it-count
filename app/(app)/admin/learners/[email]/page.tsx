@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { AdminToggle } from "@/components/admin/AdminToggle";
 import { ResetLearnerButton } from "@/components/admin/ResetLearnerButton";
 import { isAdminEmail, normalizeEmail } from "@/lib/access";
-import { PAGES, pageTitle } from "@/lib/course-pages";
+import { PAGES, furthestIndexOf, pageTitle } from "@/lib/course-pages";
 import { getLearner, getProgress, learnerPageTimes, pageStats } from "@/lib/db/queries";
 import { fmtDate, fmtDuration, initials } from "@/lib/format";
 import { elapsedMs, progressLabel } from "@/lib/learning-stats";
@@ -79,7 +79,7 @@ export default async function LearnerDetailPage({ params }: PageProps<"/admin/le
               <tbody>
                 {PAGES.map((pg) => {
                   const t = byKey.get(pg.key);
-                  const reached = (l.furthestIndex ?? -1) >= pg.index;
+                  const reached = Boolean(l.startedAt) && furthestIndexOf(l) >= pg.index;
                   return (
                     <tr key={pg.key} style={reached ? undefined : { opacity: 0.45 }}>
                       <td className="muted">{pg.index + 1}</td>

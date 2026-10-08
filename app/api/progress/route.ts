@@ -11,7 +11,7 @@ const bodySchema = z.object({
   leftPage: z.string().optional(),
   activeMs: z.number().min(0).optional(),
   currentPage: z.string(),
-  furthestIndex: z.number().int().min(0).max(PAGE_COUNT - 1),
+  furthestIndex: z.number().int().min(0),
   answers: z.record(z.string(), z.unknown()).optional(),
 });
 
@@ -35,6 +35,8 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid body.", issues: parsed.error.issues }, { status: 400 });
   }
   const body = parsed.data;
+  // A client built against a longer page list can post past the end; clamp rather than drop the update.
+  const furthestIndex = Math.min(body.furthestIndex, PAGE_COUNT - 1);
   const known = (k: string) => PAGES.some((p) => p.key === k);
   if (!known(body.currentPage)) return Response.json({ error: "Unknown page." }, { status: 400 });
 
@@ -50,8 +52,8 @@ export async function POST(req: Request) {
   await saveProgress({
     email,
     currentPage: body.currentPage,
-    furthestIndex: body.furthestIndex,
-    furthestPage: PAGES[body.furthestIndex]?.key ?? body.currentPage,
+    furthestIndex,
+    furthestPage: PAGES[furthestIndex]?.key ?? body.currentPage,
     answers: body.answers,
   });
   await markSeen({ email, name: session?.user?.name ?? null, image: session?.user?.image ?? null });

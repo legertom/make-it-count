@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { MakeItCount, type CourseAnswers } from "@/components/course/MakeItCount";
 import { normalizeEmail } from "@/lib/access";
+import { furthestIndexOf } from "@/lib/course-pages";
 import { getProgress } from "@/lib/db/queries";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ export default async function CourseLayout({ children }: LayoutProps<"/course">)
           isAdmin: Boolean(session.user.isAdmin),
         }}
         initial={{
-          furthestIndex: progress?.furthestIndex ?? 0,
+          furthestIndex: progress ? furthestIndexOf(progress) : 0,
           answers: (progress?.answers ?? {}) as Partial<CourseAnswers>,
           completedAt: progress?.completedAt ? progress.completedAt.toISOString() : null,
           rating: progress?.rating ?? null,
