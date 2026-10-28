@@ -155,9 +155,9 @@ export default async function LearnersPage() {
         ),
         <span key="rt" className="nowrap" title={l?.ratingComment ?? undefined}>{l?.rating ? <Stars n={l.rating} /> : <span className="muted">—</span>}</span>,
         <span key="r" className="nowrap adm-rowactions">
-          {l && <AdminToggle email={email} name={name} isAdmin={admin} isConfigAdmin={isAdminEmail(email)} isSelf={email === me} compact />}
-          {status !== "completed" && <MarkCompleteButton email={email} name={name} compact />}
-          {l?.startedAt && <ResetLearnerButton email={email} name={name} compact />}
+          <AdminToggle email={email} name={name} isAdmin={admin} isConfigAdmin={isAdminEmail(email)} isSelf={email === me} compact />
+          <MarkCompleteButton email={email} name={name} completed={status === "completed"} compact />
+          <ResetLearnerButton email={email} name={name} started={Boolean(l?.startedAt)} compact />
         </span>,
       ],
     };

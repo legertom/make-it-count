@@ -759,6 +759,26 @@ textarea.mic-input { resize: vertical; min-height: 5.5rem; line-height: 1.45; }
 .adm-rowactions { display: inline-flex; gap: 0.15rem; }
 .adm-iconbtn[data-tone="good"]:hover { color: var(--good); background: var(--good-wash); border-color: #BFE0D8; }
 .adm-iconbtn[data-static="true"] { cursor: default; color: #4B2FB5; }
+.adm-iconbtn[data-static="true"]:hover { background: none; border-color: transparent; }
+.adm-iconbtn[data-tip] { position: relative; }
+.adm-iconbtn[data-tip]:hover::after, .adm-iconbtn[data-tip]:focus-visible::after {
+  content: attr(data-tip); position: absolute; right: calc(100% + 6px); top: 50%; transform: translateY(-50%); z-index: 20;
+  width: max-content; max-width: 15rem; white-space: normal; text-align: left;
+  background: var(--ink); color: #fff; font-size: 0.76rem; font-weight: 500; line-height: 1.35;
+  padding: 0.35rem 0.55rem; border-radius: 7px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); pointer-events: none;
+}
+.adm-dialog {
+  border: 1px solid var(--line); border-radius: 14px; padding: 1.3rem 1.4rem 1.1rem; max-width: 28rem; width: calc(100% - 2rem);
+  color: var(--ink); background: var(--paper); box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
+  /* Rendered inside table cells; don't inherit their nowrap or alignment. */
+  white-space: normal; text-align: left; font-weight: 400;
+}
+.adm-dialog::backdrop { background: rgba(15, 23, 42, 0.35); }
+.adm-dialog h3 { margin: 0 0 0.6rem; font-size: 1.05rem; }
+.adm-dialog-body { font-size: 0.92rem; color: var(--ink-2); line-height: 1.5; }
+.adm-dialog-body p { margin: 0 0 0.5rem; }
+.adm-dialog-body ul { margin: 0 0 0.6rem; padding-left: 1.2rem; }
+.adm-dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
 
 /* home / overview */
 .home-status {
