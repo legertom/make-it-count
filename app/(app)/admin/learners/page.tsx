@@ -2,21 +2,34 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { AddAdminForm } from "@/components/admin/AddAdminForm";
 import { AdminToggle } from "@/components/admin/AdminToggle";
+import { MarkCompleteButton } from "@/components/admin/MarkCompleteButton";
 import { ResetLearnerButton } from "@/components/admin/ResetLearnerButton";
 import { LearnerRoster } from "@/components/admin/LearnerRoster";
+import { RosterUpload } from "@/components/admin/RosterUpload";
 import { SortableTable, type SortableRow } from "@/components/admin/SortableTable";
 import { adminEmails, isAdminEmail, normalizeEmail } from "@/lib/access";
 import { furthestIndexOf, pageTitle } from "@/lib/course-pages";
-import { listLearners, listRatings, pageStats } from "@/lib/db/queries";
+import { listEmployees, listLearners, listRatings, pageStats } from "@/lib/db/queries";
 import { fmtDate, fmtDuration, initials, timeAgo } from "@/lib/format";
-import { elapsedMs, overview, pageRows, progressLabel } from "@/lib/learning-stats";
+import { breakdown, elapsedMs, overview, pageRows, progressLabel, staffEntries, statusOf, type GroupRow } from "@/lib/learning-stats";
 
 export const dynamic = "force-dynamic";
 
 export default async function LearnersPage() {
-  const [session, learners, stats, ratings] = await Promise.all([auth(), listLearners(), pageStats(), listRatings()]);
+  const [session, learners, stats, ratings, employees] = await Promise.all([
+    auth(),
+    listLearners(),
+    pageStats(),
+    listRatings(),
+    listEmployees(),
+  ]);
   const me = normalizeEmail(session?.user?.email) ?? "";
-  const o = overview(learners);
+  const o = overview(learners, employees);
+  const people = staffEntries(employees, learners);
+  const rosterUpdatedAt = employees.reduce<Date | null>((d, e) => (!d || e.updatedAt > d ? e.updatedAt : d), null);
+  const departments = [...new Set(employees.map((e) => e.department ?? "No department"))].sort();
+  const byDept = breakdown(people, (e) => ({ key: e.department ?? "", label: e.department ?? "No department" }));
+  const byManager = breakdown(people, (e) => ({ key: e.managerEmail ?? "", label: e.managerName ?? "No manager" }));
   const pages = pageRows(learners, stats);
 
   const isAdminOf = (l: { email: string; isAdmin: boolean }) => l.isAdmin || isAdminEmail(l.email);
@@ -28,76 +41,139 @@ export default async function LearnersPage() {
       .map((e) => ({ email: e, name: null as string | null, isAdmin: true, isConfigAdmin: true })),
   ].sort((a, b) => a.email.localeCompare(b.email));
 
-  const rosterRows: SortableRow[] = learners.map((l) => {
-    const p = progressLabel(l);
-    const elapsed = elapsedMs(l);
-    const statusRank = l.completedAt ? 2 : p.state === "active" ? 1 : 0;
+  const rosterRows: SortableRow[] = people.map(({ email, employee: emp, learner: l }) => {
+    const name = emp?.name || l?.name || null;
+    const status = statusOf(l);
+    const p = l ? progressLabel(l) : null;
+    const elapsed = l ? elapsedMs(l) : 0;
+    const timed = Boolean(l && !l.markedCompleteBy);
+    const signedIn = Boolean(l && l.loginCount > 0);
+    const admin = l ? isAdminOf(l) : isAdminEmail(email);
+    const avatar = (
+      <span className="mic-avatar" aria-hidden="true">
+        {l?.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={l.image} alt="" referrerPolicy="no-referrer" />
+        ) : (
+          initials(name, email)
+        )}
+      </span>
+    );
+    const label = (
+      <span>
+        {name || email}
+        {admin && <span className="badge" data-role="admin" style={{ marginLeft: "0.4rem" }}>Admin</span>}
+        {name && <small>{email}</small>}
+      </span>
+    );
     return {
-      id: l.email,
+      id: email,
       meta: {
-        text: `${l.name ?? ""} ${l.email} ${isAdminOf(l) ? "admin" : ""}`.toLowerCase(),
-        status: l.completedAt ? "completed" : p.state === "active" ? "in_progress" : "not_started",
+        text: [name, email, emp?.title, emp?.department, emp?.managerName, admin ? "admin" : ""].join(" ").toLowerCase(),
+        status,
+        dept: emp ? emp.department ?? "No department" : "",
       },
       sort: {
-        person: (l.name || l.email).toLowerCase(),
-        progress: l.completedAt ? 1000 : statusRank === 0 ? -1 : furthestIndexOf(l),
-        active: l.activeMs,
-        elapsed,
-        lastLogin: l.lastLoginAt.getTime(),
-        lastActive: l.lastSeenAt.getTime(),
-        logins: l.loginCount,
-        rating: l.rating ?? -1,
+        person: (name || email).toLowerCase(),
+        team: emp ? `${emp.department ?? ""} ${emp.title ?? ""}`.toLowerCase() : null,
+        manager: emp?.managerName?.toLowerCase() ?? null,
+        progress: status === "completed" ? 1000 : status === "in_progress" && l ? furthestIndexOf(l) : signedIn ? -1 : -2,
+        active: timed && l?.activeMs ? l.activeMs : null,
+        elapsed: timed && l?.startedAt ? elapsed : null,
+        lastLogin: signedIn && l ? l.lastLoginAt.getTime() : null,
+        lastActive: signedIn && l ? l.lastSeenAt.getTime() : null,
+        logins: l?.loginCount ?? 0,
+        rating: l?.rating ?? -1,
       },
       cells: [
-        <Link key="p" href={`/admin/learners/${encodeURIComponent(l.email)}`} className="adm-person">
-          <span className="mic-avatar" aria-hidden="true">
-            {l.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={l.image} alt="" referrerPolicy="no-referrer" />
-            ) : (
-              initials(l.name, l.email)
-            )}
-          </span>
-          <span>
-            {l.name || l.email}
-            {isAdminOf(l) && <span className="badge" data-role="admin" style={{ marginLeft: "0.4rem" }}>Admin</span>}
-            {l.name && <small>{l.email}</small>}
-          </span>
-        </Link>,
+        l ? (
+          <Link key="p" href={`/admin/learners/${encodeURIComponent(email)}`} className="adm-person">{avatar}{label}</Link>
+        ) : (
+          <span key="p" className="adm-person">{avatar}{label}</span>
+        ),
+        <span key="t" className="adm-team">
+          {emp ? (
+            <>
+              {emp.department ?? <span className="muted">No department</span>}
+              {emp.title && <small className="muted">{emp.title}</small>}
+            </>
+          ) : (
+            <span className="muted">{employees.length ? "Not on roster" : "—"}</span>
+          )}
+        </span>,
+        <span key="m" className="muted">{emp?.managerName ?? "—"}</span>,
         <span key="s" className="adm-status">
-          {l.completedAt ? (
+          {l?.completedAt ? (
             <>
               <span className="badge" data-done="true">Completed</span>
-              <small className="muted">{fmtDate(l.completedAt, true)}</small>
+              <small className="muted">
+                {fmtDate(l.completedAt, true)}
+                {l.markedCompleteBy ? ` · checked off by ${l.markedCompleteBy}` : ""}
+              </small>
             </>
           ) : (
             <>
-              <span className="badge" data-done="false">{p.state === "new" ? "Not started" : "In progress"}</span>
-              {p.state === "active" && (
+              <span className="badge" data-done="false">{status === "not_started" ? "Not started" : "In progress"}</span>
+              {status === "in_progress" && l && p && (
                 <>
                   <span className="adm-bar" title={p.text}><i style={{ width: `${Math.round(p.pct * 100)}%` }} /></span>
                   <small className="muted">{p.text} · {pageTitle(l.furthestPage ?? "why-frame")}</small>
                 </>
               )}
+              {!signedIn && <small className="muted">Never signed in</small>}
             </>
           )}
-          {l.resetCount ? <small className="muted">reset ×{l.resetCount}</small> : null}
+          {l?.resetCount ? <small className="muted">reset ×{l.resetCount}</small> : null}
         </span>,
-        <span key="a" className="nowrap">{fmtDuration(l.activeMs)}</span>,
-        <span key="e" className="nowrap muted">{l.completedAt ? fmtDuration(elapsed) : l.startedAt ? `${fmtDuration(elapsed)} so far` : "—"}</span>,
-        <span key="ll" className="nowrap muted" title={fmtDate(l.lastLoginAt, true)}>
-          {timeAgo(l.lastLoginAt)}
-          <small style={{ display: "block" }}>{l.loginCount} login{l.loginCount === 1 ? "" : "s"}</small>
-        </span>,
-        <span key="la" className="nowrap muted" title={fmtDate(l.lastSeenAt, true)}>{timeAgo(l.lastSeenAt)}</span>,
-        <span key="rt" className="nowrap" title={l.ratingComment ?? undefined}>{l.rating ? <Stars n={l.rating} /> : <span className="muted">—</span>}</span>,
+        <span key="a" className="nowrap">{timed && l?.startedAt ? fmtDuration(l.activeMs) : <span className="muted">—</span>}</span>,
+        <span key="e" className="nowrap muted">{!timed || !l?.startedAt ? "—" : l.completedAt ? fmtDuration(elapsed) : `${fmtDuration(elapsed)} so far`}</span>,
+        signedIn && l ? (
+          <span key="ll" className="nowrap muted" title={fmtDate(l.lastLoginAt, true)}>
+            {timeAgo(l.lastLoginAt)}
+            <small style={{ display: "block" }}>{l.loginCount} login{l.loginCount === 1 ? "" : "s"}</small>
+          </span>
+        ) : (
+          <span key="ll" className="nowrap muted">Never</span>
+        ),
+        signedIn && l ? (
+          <span key="la" className="nowrap muted" title={fmtDate(l.lastSeenAt, true)}>{timeAgo(l.lastSeenAt)}</span>
+        ) : (
+          <span key="la" className="muted">—</span>
+        ),
+        <span key="rt" className="nowrap" title={l?.ratingComment ?? undefined}>{l?.rating ? <Stars n={l.rating} /> : <span className="muted">—</span>}</span>,
         <span key="r" className="nowrap adm-rowactions">
-          <AdminToggle email={l.email} name={l.name} isAdmin={isAdminOf(l)} isConfigAdmin={isAdminEmail(l.email)} isSelf={l.email === me} compact />
-          {l.startedAt && <ResetLearnerButton email={l.email} name={l.name} compact />}
+          {l && <AdminToggle email={email} name={name} isAdmin={admin} isConfigAdmin={isAdminEmail(email)} isSelf={email === me} compact />}
+          {status !== "completed" && <MarkCompleteButton email={email} name={name} compact />}
+          {l?.startedAt && <ResetLearnerButton email={email} name={name} compact />}
         </span>,
       ],
     };
   });
+
+  const groupRows = (groups: GroupRow[]): SortableRow[] =>
+    groups.map((g) => ({
+      id: g.key || "none",
+      sort: { group: g.label.toLowerCase(), staff: g.staff, signedIn: g.signedIn, started: g.started, completed: g.completed, pct: g.completedPct },
+      cells: [
+        <span key="g">{g.label}</span>,
+        <span key="s">{g.staff}</span>,
+        <span key="i" className="muted">{g.signedIn}</span>,
+        <span key="st" className="muted">{g.started}</span>,
+        <span key="c">{g.completed}</span>,
+        <span key="b" className="nowrap" style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+          <span className="adm-bar"><i style={{ width: `${Math.round(g.completedPct * 100)}%` }} /></span>
+          {Math.round(g.completedPct * 100)}%
+        </span>,
+      ],
+    }));
+  const groupColumns = (label: string) => [
+    { key: "group", label },
+    { key: "staff", label: "Staff", num: true },
+    { key: "signedIn", label: "Signed in", num: true },
+    { key: "started", label: "Started", num: true },
+    { key: "completed", label: "Completed", num: true },
+    { key: "pct", label: "Finished", defaultDir: "desc" as const },
+  ];
 
   const pageTableRows: SortableRow[] = pages.map((p) => ({
     id: p.key,
@@ -125,15 +201,16 @@ export default async function LearnersPage() {
     <>
       <h1>Learners</h1>
       <p className="adm-lede">
-        Who has signed in, how far they've gotten, who has finished, and how long each page takes. Active time counts
-        only while the course tab is visible; elapsed time is first visit to completion. Click a column to sort.
+        Everyone on the employee roster, how far they've gotten, who has finished, and how long each page takes.
+        Active time counts only while the course tab is visible; elapsed time is first visit to completion. People
+        checked off by an admin have no timing and are left out of the time stats. Click a column to sort.
       </p>
 
       <div className="adm-stats">
         <div className="adm-stat"><b>{o.signedIn}</b><span>Signed in</span></div>
         <div className="adm-stat"><b>{o.started}</b><span>Started</span></div>
-        <div className="adm-stat"><b>{o.completed}</b><span>Completed</span></div>
-        <div className="adm-stat"><b>{Math.round(o.staffCompletionRate * 100)}%</b><span>Finished, of all {o.totalEmployees} staff</span></div>
+        <div className="adm-stat"><b>{o.completed}</b><span>Completed{o.markedComplete ? ` (${o.markedComplete} checked off by an admin)` : ""}</span></div>
+        <div className="adm-stat"><b>{Math.round(o.staffCompletionRate * 100)}%</b><span>Finished, of all {o.totalEmployees} staff{o.fromRoster ? "" : " (no roster yet)"}</span></div>
         <div className="adm-stat"><b>{Math.round(o.completionRate * 100)}%</b><span>Finished, of those who started</span></div>
         <div className="adm-stat"><b>{fmtDuration(o.avgActiveMsToComplete)}</b><span>Avg active time to finish</span></div>
         <div className="adm-stat"><b>{fmtDuration(o.medianActiveMsToComplete)}</b><span>Median active time</span></div>
@@ -164,13 +241,41 @@ export default async function LearnersPage() {
         <AddAdminForm />
       </div>
 
+      {employees.length > 0 && (
+        <>
+          <h2>By department</h2>
+          <SortableTable columns={groupColumns("Department")} rows={groupRows(byDept)} initialSort={{ key: "pct", dir: "asc" }} />
+
+          <h2>By manager</h2>
+          <p className="adm-lede" style={{ fontSize: "0.88rem" }}>
+            Each manager&rsquo;s direct reports. Lowest completion first, so you know whose team to nudge.
+          </p>
+          <SortableTable columns={groupColumns("Manager")} rows={groupRows(byManager)} initialSort={{ key: "pct", dir: "asc" }} />
+        </>
+      )}
+
       <h2>Roster</h2>
       <p className="adm-lede" style={{ fontSize: "0.88rem" }}>
-        <a href="/admin/learners.csv">Download as CSV</a>
+        {employees.length ? (
+          <>
+            {employees.length} people from the employee roster
+            {rosterUpdatedAt ? <>, updated {fmtDate(rosterUpdatedAt)}</> : null}
+            {o.offRoster ? <>, plus {o.offRoster} signed-in {o.offRoster === 1 ? "person" : "people"} not on it</> : null}.{" "}
+          </>
+        ) : (
+          <>No employee roster yet, so this lists only people who have signed in. </>
+        )}
+        Upload the latest HR export (CSV) to replace the roster. Use the check button to mark someone as completed
+        if they finished some other way. <a href="/admin/learners.csv">Download as CSV</a>
       </p>
+      <div style={{ margin: "0 0 0.9rem" }}>
+        <RosterUpload />
+      </div>
       <LearnerRoster
         columns={[
-          { key: "person", label: "Learner" },
+          { key: "person", label: "Person" },
+          { key: "team", label: "Department" },
+          { key: "manager", label: "Manager" },
           { key: "progress", label: "Status", defaultDir: "desc" },
           { key: "active", label: "Active", num: true },
           { key: "elapsed", label: "Elapsed", num: true },
@@ -180,6 +285,7 @@ export default async function LearnersPage() {
           { key: "actions", label: "", sortable: false },
         ]}
         rows={rosterRows}
+        departments={departments}
       />
 
       <h2>What people said</h2>
@@ -206,7 +312,7 @@ export default async function LearnersPage() {
 
       <h2>Time per page</h2>
       <p className="adm-lede" style={{ fontSize: "0.88rem" }}>
-        Reach is the share of people who started the course and got at least this far. Time is per visit, so a page
+        Reach is the share of people who started the course here and got at least this far (people checked off by an admin aren't counted). Time is per visit, so a page
         someone returns to counts each visit.
       </p>
       <SortableTable

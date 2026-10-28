@@ -14,30 +14,33 @@ const STATUS_CHIPS: { id: Status; label: string }[] = [
 ];
 
 /**
- * Search box + completion filter around the sortable roster. Rows carry
- * `meta.text` (name and email, lowercased) and `meta.status` from the server.
+ * Search box, completion and department filters around the sortable roster. Rows carry
+ * `meta.text` (name, email, title, team, lowercased), `meta.status` and `meta.dept` from the server.
  */
-export function LearnerRoster({ columns, rows }: { columns: SortableColumn[]; rows: SortableRow[] }) {
+export function LearnerRoster({ columns, rows, departments = [] }: { columns: SortableColumn[]; rows: SortableRow[]; departments?: string[] }) {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<Status>("all");
+  const [dept, setDept] = useState("");
+
+  const inDept = useMemo(() => (dept ? rows.filter((r) => r.meta?.dept === dept) : rows), [rows, dept]);
 
   const counts = useMemo(() => {
-    const c: Record<Status, number> = { all: rows.length, completed: 0, in_progress: 0, not_started: 0 };
-    for (const r of rows) {
+    const c: Record<Status, number> = { all: inDept.length, completed: 0, in_progress: 0, not_started: 0 };
+    for (const r of inDept) {
       const s = r.meta?.status as Status | undefined;
       if (s && s in c) c[s]++;
     }
     return c;
-  }, [rows]);
+  }, [inDept]);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return rows.filter((r) => {
+    return inDept.filter((r) => {
       if (status !== "all" && r.meta?.status !== status) return false;
       if (needle && !(r.meta?.text ?? "").includes(needle)) return false;
       return true;
     });
-  }, [rows, q, status]);
+  }, [inDept, q, status]);
 
   return (
     <>
@@ -48,7 +51,7 @@ export function LearnerRoster({ columns, rows }: { columns: SortableColumn[]; ro
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by name or email"
+            placeholder="Search by name, email, title or manager"
             aria-label="Search learners"
           />
           {q && (
@@ -57,6 +60,14 @@ export function LearnerRoster({ columns, rows }: { columns: SortableColumn[]; ro
             </button>
           )}
         </label>
+        {departments.length > 0 && (
+          <select className="mic-input adm-select" value={dept} onChange={(e) => setDept(e.target.value)} aria-label="Filter by department">
+            <option value="">All departments</option>
+            {departments.map((d) => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+        )}
         <div className="adm-chips" role="group" aria-label="Filter by completion">
           {STATUS_CHIPS.map((c) => (
             <button key={c.id} type="button" className="adm-chip" aria-pressed={status === c.id} onClick={() => setStatus(c.id)}>
@@ -65,14 +76,14 @@ export function LearnerRoster({ columns, rows }: { columns: SortableColumn[]; ro
           ))}
         </div>
         <span className="adm-toolbar-count">
-          {filtered.length === rows.length ? `${rows.length} learner${rows.length === 1 ? "" : "s"}` : `${filtered.length} of ${rows.length}`}
+          {filtered.length === rows.length ? `${rows.length} ${rows.length === 1 ? "person" : "people"}` : `${filtered.length} of ${rows.length}`}
         </span>
       </div>
       <SortableTable
         columns={columns}
         rows={filtered}
         initialSort={{ key: "lastActive", dir: "desc" }}
-        empty={rows.length === 0 ? "Nobody has signed in yet." : "No learners match."}
+        empty={rows.length === 0 ? "Nobody has signed in yet." : "Nobody matches."}
       />
     </>
   );

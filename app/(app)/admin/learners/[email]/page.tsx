@@ -2,10 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { AdminToggle } from "@/components/admin/AdminToggle";
+import { MarkCompleteButton } from "@/components/admin/MarkCompleteButton";
 import { ResetLearnerButton } from "@/components/admin/ResetLearnerButton";
 import { isAdminEmail, normalizeEmail } from "@/lib/access";
 import { PAGES, furthestIndexOf, pageTitle } from "@/lib/course-pages";
-import { getLearner, getProgress, learnerPageTimes, pageStats } from "@/lib/db/queries";
+import { getEmployee, getLearner, getProgress, learnerPageTimes, pageStats } from "@/lib/db/queries";
 import { fmtDate, fmtDuration, initials } from "@/lib/format";
 import { elapsedMs, progressLabel } from "@/lib/learning-stats";
 
@@ -14,12 +15,13 @@ export const dynamic = "force-dynamic";
 export default async function LearnerDetailPage({ params }: PageProps<"/admin/learners/[email]">) {
   const { email: raw } = await params;
   const email = decodeURIComponent(raw).toLowerCase();
-  const [session, l, times, stats, progress] = await Promise.all([
+  const [session, l, times, stats, progress, emp] = await Promise.all([
     auth(),
     getLearner(email),
     learnerPageTimes(email),
     pageStats(),
     getProgress(email),
+    getEmployee(email),
   ]);
   if (!l) notFound();
   const me = normalizeEmail(session?.user?.email) ?? "";
@@ -45,12 +47,18 @@ export default async function LearnerDetailPage({ params }: PageProps<"/admin/le
         {l.name || l.email}
         {admin && <span className="badge" data-role="admin">Admin</span>}
       </h1>
-      <p className="adm-lede">{l.email}</p>
+      <p className="adm-lede">
+        {l.email}
+        {" · "}
+        {emp
+          ? [emp.title, emp.department, emp.managerName && `reports to ${emp.managerName}`].filter(Boolean).join(" · ")
+          : "not on the employee roster"}
+      </p>
 
       <div className="adm-stats">
         <div className="adm-stat">
           <b>{l.completedAt ? "Completed" : p.state === "new" ? "Not started" : "In progress"}</b>
-          <span>{l.completedAt ? fmtDate(l.completedAt, true) : p.state === "active" ? `${p.text} · ${pageTitle(l.furthestPage ?? "why-frame")}` : "Hasn't opened the course"}</span>
+          <span>{l.completedAt ? `${fmtDate(l.completedAt, true)}${l.markedCompleteBy ? `, checked off by ${l.markedCompleteBy}` : ""}` : p.state === "active" ? `${p.text} · ${pageTitle(l.furthestPage ?? "why-frame")}` : "Hasn't opened the course"}</span>
         </div>
         <div className="adm-stat"><b>{fmtDuration(l.activeMs)}</b><span>Active time in the course</span></div>
         <div className="adm-stat"><b>{fmtDuration(elapsed)}</b><span>{l.completedAt ? "Elapsed, start to finish" : "Elapsed since first visit"}</span></div>
@@ -106,6 +114,15 @@ export default async function LearnerDetailPage({ params }: PageProps<"/admin/le
             </p>
             <AdminToggle email={l.email} name={l.name} isAdmin={admin} isConfigAdmin={isAdminEmail(l.email)} isSelf={l.email === me} />
           </div>
+          {!l.completedAt && (
+            <div className="adm-card">
+              <h3>Mark as completed</h3>
+              <p style={{ margin: "0 0 0.6rem", fontSize: "0.88rem", color: "var(--ink-2)" }}>
+                For someone who finished the course some other way. No time is recorded, and the course opens on the job aid for them.
+              </p>
+              <MarkCompleteButton email={l.email} name={l.name} />
+            </div>
+          )}
           <div className="adm-card">
             <h3>Reset progress</h3>
             <p style={{ margin: "0 0 0.6rem", fontSize: "0.88rem", color: "var(--ink-2)" }}>

@@ -1,7 +1,9 @@
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, notInArray, sql } from "drizzle-orm";
 import { getDb } from "./index";
 import { newId } from "@/lib/ids";
+import { PAGES, PAGE_COUNT } from "@/lib/course-pages";
 import {
+  employees,
   feedback,
   pageViews,
   progress,
@@ -143,6 +145,44 @@ export async function markComplete(email: string): Promise<ProgressRow> {
   return rows[0];
 }
 
+/**
+ * Admin: check someone off who finished outside the app. Creates the user row (0 logins)
+ * if they've never signed in, sends the course to the job aid, and records no timing.
+ */
+export async function markCompleteByAdmin(email: string, name: string | null, adminEmail: string) {
+  const db = await getDb();
+  const now = new Date();
+  const last = PAGES[PAGE_COUNT - 1].key;
+  await db
+    .insert(users)
+    .values({ email, name, createdAt: now, lastLoginAt: now, lastSeenAt: now, loginCount: 0 })
+    .onConflictDoNothing();
+  await db
+    .insert(progress)
+    .values({
+      email,
+      currentPage: last,
+      furthestIndex: PAGE_COUNT - 1,
+      furthestPage: last,
+      startedAt: now,
+      updatedAt: now,
+      completedAt: now,
+      markedCompleteBy: adminEmail,
+    })
+    .onConflictDoUpdate({
+      target: progress.email,
+      set: {
+        currentPage: last,
+        furthestIndex: PAGE_COUNT - 1,
+        furthestPage: last,
+        completedAt: now,
+        markedCompleteBy: adminEmail,
+        updatedAt: now,
+      },
+      setWhere: sql`${progress.completedAt} is null`,
+    });
+}
+
 const STARS = ["", "★☆☆☆☆", "★★☆☆☆", "★★★☆☆", "★★★★☆", "★★★★★"];
 
 /** Every rating is its own feedback row; progress keeps the latest for the roster. */
@@ -235,7 +275,7 @@ export async function clearCompletion(email: string) {
   const db = await getDb();
   await db
     .update(progress)
-    .set({ completedAt: null, updatedAt: new Date() })
+    .set({ completedAt: null, markedCompleteBy: null, updatedAt: new Date() })
     .where(eq(progress.email, email));
 }
 
@@ -254,6 +294,7 @@ export async function resetProgress(email: string) {
       startedAt: now,
       updatedAt: now,
       completedAt: null,
+      markedCompleteBy: null,
       resetCount: sql`${progress.resetCount} + 1`,
     })
     .where(eq(progress.email, email));
@@ -278,6 +319,7 @@ export type LearnerRow = {
   ratingComment: string | null;
   ratedAt: Date | null;
   resetCount: number | null;
+  markedCompleteBy: string | null;
   activeMs: number;
   views: number;
 };
@@ -314,6 +356,7 @@ export async function listLearners(): Promise<LearnerRow[]> {
       ratingComment: progress.ratingComment,
       ratedAt: progress.ratedAt,
       resetCount: progress.resetCount,
+      markedCompleteBy: progress.markedCompleteBy,
       activeMs: sql<number>`coalesce(${pv.activeMs}, 0)::int`,
       views: sql<number>`coalesce(${pv.views}, 0)::int`,
     })
@@ -374,6 +417,52 @@ export async function learnerPageTimes(email: string): Promise<LearnerPageTime[]
     .from(pageViews)
     .where(eq(pageViews.email, email))
     .groupBy(pageViews.pageKey);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Employee roster                                                    */
+/* ------------------------------------------------------------------ */
+
+export type EmployeeRow = typeof employees.$inferSelect;
+export type EmployeeInput = Omit<EmployeeRow, "updatedAt">;
+
+export async function listEmployees(): Promise<EmployeeRow[]> {
+  const db = await getDb();
+  return db.select().from(employees).orderBy(employees.name);
+}
+
+export async function getEmployee(email: string): Promise<EmployeeRow | null> {
+  const db = await getDb();
+  const rows = await db.select().from(employees).where(eq(employees.email, email)).limit(1);
+  return rows[0] ?? null;
+}
+
+/**
+ * Make the roster exactly `rows`: upsert everyone in it, then drop anyone who has left.
+ * Upserting first means the table is never empty mid-upload. Progress is untouched.
+ */
+export async function replaceEmployees(rows: EmployeeInput[]) {
+  if (!rows.length) throw new Error("Refusing to replace the roster with nobody.");
+  const db = await getDb();
+  const now = new Date();
+  await db
+    .insert(employees)
+    .values(rows.map((r) => ({ ...r, updatedAt: now })))
+    .onConflictDoUpdate({
+      target: employees.email,
+      set: {
+        employeeId: sql`excluded.employee_id`,
+        name: sql`excluded.name`,
+        title: sql`excluded.title`,
+        department: sql`excluded.department`,
+        site: sql`excluded.site`,
+        startDate: sql`excluded.start_date`,
+        managerName: sql`excluded.manager_name`,
+        managerEmail: sql`excluded.manager_email`,
+        updatedAt: now,
+      },
+    });
+  await db.delete(employees).where(notInArray(employees.email, rows.map((r) => r.email)));
 }
 
 /* ------------------------------------------------------------------ */

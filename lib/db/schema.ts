@@ -35,7 +35,33 @@ export const progress = pgTable("progress", {
   ratingFeedbackId: text("rating_feedback_id"),
   /** How many times an admin has reset this learner. */
   resetCount: integer("reset_count").notNull().default(0),
+  /**
+   * Admin who checked this learner off by hand (they finished some other way), or null when
+   * they finished in the app. These completions have no timing and stay out of time stats.
+   */
+  markedCompleteBy: text("marked_complete_by"),
 });
+
+/**
+ * The company roster, replaced wholesale each time an admin uploads the HR export.
+ * It is the "all staff" the Learners page measures against. Matched to learners by email.
+ */
+export const employees = pgTable(
+  "employees",
+  {
+    email: text("email").primaryKey(),
+    employeeId: text("employee_id"),
+    name: text("name").notNull(),
+    title: text("title"),
+    department: text("department"),
+    site: text("site"),
+    startDate: text("start_date"),
+    managerName: text("manager_name"),
+    managerEmail: text("manager_email"),
+    updatedAt: tsNow("updated_at"),
+  },
+  (t) => [index("employees_department_idx").on(t.department)],
+);
 
 /** One row each time a learner leaves a course page. `activeMs` counts only visible-tab time. */
 export const pageViews = pgTable(

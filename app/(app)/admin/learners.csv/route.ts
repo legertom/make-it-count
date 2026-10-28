@@ -1,8 +1,8 @@
 import { auth } from "@/auth";
 import { furthestIndexOf, pageTitle } from "@/lib/course-pages";
-import { listLearners } from "@/lib/db/queries";
+import { listEmployees, listLearners } from "@/lib/db/queries";
 import { isAdminEmail } from "@/lib/access";
-import { progressLabel } from "@/lib/learning-stats";
+import { staffEntries, statusOf } from "@/lib/learning-stats";
 
 function csvCell(v: unknown): string {
   const s = v == null ? "" : String(v);
@@ -13,21 +13,25 @@ export async function GET() {
   const session = await auth();
   if (!session?.user?.isAdmin) return new Response("Admins only.", { status: 403 });
 
-  const learners = await listLearners();
+  const [learners, employees] = await Promise.all([listLearners(), listEmployees()]);
   const header = [
-    "email", "name", "status", "furthest_page", "furthest_page_title", "pages_reached",
+    "email", "name", "on_roster", "department", "title", "manager", "site", "status", "marked_complete_by", "furthest_page", "furthest_page_title", "pages_reached",
     "started_at", "completed_at", "active_seconds", "elapsed_seconds_to_complete",
     "first_sign_in", "last_login", "last_active", "login_count", "admin_resets",
     "rating", "rating_comment", "rated_at", "is_admin",
   ];
-  const lines = learners.map((l) => {
-    const p = progressLabel(l);
-    const elapsed = l.completedAt && l.startedAt ? Math.round((l.completedAt.getTime() - l.startedAt.getTime()) / 1000) : "";
+  const lines = staffEntries(employees, learners).map(({ email, employee: e, learner: l }) => {
+    const roster = [e ? "yes" : "", e?.department ?? "", e?.title ?? "", e?.managerName ?? "", e?.site ?? ""];
+    if (!l) {
+      return [email, e?.name ?? "", ...roster, "not_started", ...Array(header.length - 8).fill("")].map(csvCell).join(",");
+    }
+    const elapsed = l.completedAt && l.startedAt && !l.markedCompleteBy ? Math.round((l.completedAt.getTime() - l.startedAt.getTime()) / 1000) : "";
+    const signedIn = l.loginCount > 0;
     return [
-      l.email, l.name ?? "", l.completedAt ? "completed" : p.state === "new" ? "not_started" : "in_progress",
+      l.email, l.name ?? e?.name ?? "", ...roster, statusOf(l), l.markedCompleteBy ?? "",
       l.furthestPage ?? "", l.furthestPage ? pageTitle(l.furthestPage) : "", l.startedAt ? furthestIndexOf(l) + 1 : 0,
-      l.startedAt?.toISOString() ?? "", l.completedAt?.toISOString() ?? "", Math.round(l.activeMs / 1000), elapsed,
-      l.createdAt.toISOString(), l.lastLoginAt.toISOString(), l.lastSeenAt.toISOString(), l.loginCount, l.resetCount ?? 0,
+      l.startedAt?.toISOString() ?? "", l.completedAt?.toISOString() ?? "", l.markedCompleteBy ? "" : Math.round(l.activeMs / 1000), elapsed,
+      signedIn ? l.createdAt.toISOString() : "", signedIn ? l.lastLoginAt.toISOString() : "", signedIn ? l.lastSeenAt.toISOString() : "", l.loginCount, l.resetCount ?? 0,
       l.rating ?? "", l.ratingComment ?? "", l.ratedAt?.toISOString() ?? "", l.isAdmin || isAdminEmail(l.email) ? "yes" : "",
     ].map(csvCell).join(",");
   });
