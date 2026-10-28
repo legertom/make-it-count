@@ -621,6 +621,30 @@ textarea.mic-input { resize: vertical; min-height: 5.5rem; line-height: 1.45; }
 .badge[data-status="wont_fix"] { background: var(--panel-2); color: var(--ink-3); }
 .badge[data-done="true"] { background: var(--good-wash); color: var(--good); }
 .badge[data-done="false"] { background: var(--panel-2); color: var(--ink-2); }
+.adm-collapse { margin: 1.4rem 0 0; }
+.adm-collapse > summary { display: flex; align-items: baseline; gap: 0.6rem; cursor: pointer; list-style: none; flex-wrap: wrap; }
+.adm-collapse > summary::-webkit-details-marker { display: none; }
+.adm-collapse > summary h2 { margin: 0; }
+.adm-collapse > summary .muted { font-size: 0.86rem; }
+.adm-collapse-icon { align-self: center; color: var(--ink-3); transition: transform 0.15s; }
+.adm-collapse[open] .adm-collapse-icon { transform: rotate(90deg); }
+.adm-collapse[open] > summary { margin-bottom: 0.6rem; }
+.adm-mgrs { border: 1px solid var(--line); border-radius: 12px; background: var(--paper); overflow: hidden; }
+.adm-mgr + .adm-mgr { border-top: 1px solid var(--line-soft); }
+.adm-mgr > summary {
+  display: grid; grid-template-columns: 16px minmax(10rem, 1fr) 9rem 8rem 3rem; align-items: center; gap: 0.7rem;
+  padding: 0.6rem 0.9rem; cursor: pointer; list-style: none; font-size: 0.92rem;
+}
+.adm-mgr > summary::-webkit-details-marker { display: none; }
+.adm-mgr > summary:hover { background: var(--panel); }
+.adm-mgr > summary .muted { font-size: 0.84rem; }
+.adm-mgr[open] .adm-collapse-icon { transform: rotate(90deg); }
+.adm-mgr-pct { text-align: right; font-variant-numeric: tabular-nums; }
+.adm-reports { list-style: none; margin: 0; padding: 0.2rem 0.9rem 0.7rem 2.75rem; display: grid; gap: 0.35rem; }
+.adm-reports li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; font-size: 0.88rem; }
+.adm-reports li > :first-child { display: flex; flex-direction: column; color: var(--ink); text-decoration: none; }
+.adm-reports a:hover { text-decoration: underline; }
+.adm-reports small { font-size: 0.78rem; }
 .adm-select { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); border-radius: 8px; padding: 0.3rem 0.5rem; background: var(--paper); color: var(--ink); }
 .adm-detail { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 1.4rem; margin-top: 1rem; }
 @media (max-width: 860px) { .adm-detail { grid-template-columns: 1fr; } }

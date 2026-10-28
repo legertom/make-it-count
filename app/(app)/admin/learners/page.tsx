@@ -1,4 +1,6 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { auth } from "@/auth";
 import { AddAdminForm } from "@/components/admin/AddAdminForm";
 import { AdminToggle } from "@/components/admin/AdminToggle";
@@ -29,6 +31,17 @@ export default async function LearnersPage() {
   const rosterUpdatedAt = employees.reduce<Date | null>((d, e) => (!d || e.updatedAt > d ? e.updatedAt : d), null);
   const departments = [...new Set(employees.map((e) => e.department ?? "No department"))].sort();
   const byDept = breakdown(people, (e) => ({ key: e.department ?? "", label: e.department ?? "No department" }));
+  // Direct reports per manager, finished first then by name, for the expandable manager list.
+  const rank = { completed: 0, in_progress: 1, not_started: 2 } as const;
+  const reportsOf = new Map<string, typeof people>();
+  for (const p of people) {
+    if (!p.employee) continue;
+    const k = p.employee.managerEmail ?? "";
+    reportsOf.set(k, [...(reportsOf.get(k) ?? []), p]);
+  }
+  for (const list of reportsOf.values()) {
+    list.sort((a, b) => rank[statusOf(a.learner)] - rank[statusOf(b.learner)] || (a.employee?.name ?? "").localeCompare(b.employee?.name ?? ""));
+  }
   const byManager = breakdown(people, (e) => ({ key: e.managerEmail ?? "", label: e.managerName ?? "No manager" }));
   const pages = pageRows(learners, stats);
 
@@ -209,7 +222,7 @@ export default async function LearnersPage() {
       <div className="adm-stats">
         <div className="adm-stat"><b>{o.signedIn}</b><span>Signed in</span></div>
         <div className="adm-stat"><b>{o.started}</b><span>Started</span></div>
-        <div className="adm-stat"><b>{o.completed}</b><span>Completed{o.markedComplete ? ` (${o.markedComplete} checked off by an admin)` : ""}</span></div>
+        <div className="adm-stat"><b>{o.completed}</b><span>Completed</span></div>
         <div className="adm-stat"><b>{Math.round(o.staffCompletionRate * 100)}%</b><span>Finished, of all {o.totalEmployees} staff{o.fromRoster ? "" : " (no roster yet)"}</span></div>
         <div className="adm-stat"><b>{Math.round(o.completionRate * 100)}%</b><span>Finished, of those who started</span></div>
         <div className="adm-stat"><b>{fmtDuration(o.avgActiveMsToComplete)}</b><span>Avg active time to finish</span></div>
@@ -243,14 +256,49 @@ export default async function LearnersPage() {
 
       {employees.length > 0 && (
         <>
-          <h2>By department</h2>
-          <SortableTable columns={groupColumns("Department")} rows={groupRows(byDept)} initialSort={{ key: "pct", dir: "asc" }} />
-
-          <h2>By manager</h2>
-          <p className="adm-lede" style={{ fontSize: "0.88rem" }}>
-            Each manager&rsquo;s direct reports. Lowest completion first, so you know whose team to nudge.
-          </p>
-          <SortableTable columns={groupColumns("Manager")} rows={groupRows(byManager)} initialSort={{ key: "pct", dir: "asc" }} />
+          <Breakdown title="By department" groups={byDept}>
+            <SortableTable columns={groupColumns("Department")} rows={groupRows(byDept)} initialSort={{ key: "pct", dir: "asc" }} />
+          </Breakdown>
+          <Breakdown
+            title="By manager"
+            note="Each manager’s direct reports, lowest completion first, so you know whose team to nudge. Click a manager to see who has and hasn’t finished."
+            groups={byManager}
+          >
+            <div className="adm-mgrs">
+              {[...byManager]
+                .sort((a, b) => a.completedPct - b.completedPct || b.staff - a.staff)
+                .map((g) => (
+                  <details key={g.key || "none"} className="adm-mgr">
+                    <summary>
+                      <ChevronRight size={15} aria-hidden="true" className="adm-collapse-icon" />
+                      <b>{g.label}</b>
+                      <span className="muted">{g.completed} of {g.staff} finished</span>
+                      <span className="adm-bar"><i style={{ width: `${Math.round(g.completedPct * 100)}%` }} /></span>
+                      <span className="adm-mgr-pct">{Math.round(g.completedPct * 100)}%</span>
+                    </summary>
+                    <ul className="adm-reports">
+                      {(reportsOf.get(g.key) ?? []).map(({ email, employee: e, learner: l }) => {
+                        const st = statusOf(l);
+                        const who = (
+                          <>
+                            {e?.name ?? l?.name ?? email}
+                            {e?.title && <small className="muted">{e.title}</small>}
+                          </>
+                        );
+                        return (
+                          <li key={email}>
+                            {l ? <Link href={`/admin/learners/${encodeURIComponent(email)}`}>{who}</Link> : <span>{who}</span>}
+                            <span className="badge" data-done={st === "completed" ? "true" : "false"}>
+                              {st === "completed" ? "Completed" : st === "in_progress" ? "In progress" : "Not started"}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </details>
+                ))}
+            </div>
+          </Breakdown>
         </>
       )}
 
@@ -329,6 +377,25 @@ export default async function LearnersPage() {
         initialSort={{ key: "n", dir: "asc" }}
       />
     </>
+  );
+}
+
+/** A completion breakdown, collapsed to a one-line summary until opened. */
+function Breakdown({ title, note, groups, children }: { title: string; note?: string; groups: GroupRow[]; children: ReactNode }) {
+  const lowest = groups.reduce<GroupRow | null>((lo, g) => (!lo || g.completedPct < lo.completedPct ? g : lo), null);
+  return (
+    <details className="adm-collapse">
+      <summary>
+        <ChevronRight size={16} aria-hidden="true" className="adm-collapse-icon" />
+        <h2>{title}</h2>
+        <span className="muted">
+          {groups.length} groups
+          {lowest ? ` · lowest: ${lowest.label}, ${Math.round(lowest.completedPct * 100)}%` : ""}
+        </span>
+      </summary>
+      {note && <p className="adm-lede" style={{ fontSize: "0.88rem" }}>{note}</p>}
+      {children}
+    </details>
   );
 }
 

@@ -35,8 +35,6 @@ export type Overview = {
   staffCompleted: number;
   /** Signed-in people whose email isn't on the roster (0 when there's no roster). */
   offRoster: number;
-  /** Finishers an admin checked off by hand; they have no timing. */
-  markedComplete: number;
   /** Share of all staff who have finished. */
   staffCompletionRate: number;
   avgActiveMsToComplete: number;
@@ -74,7 +72,6 @@ export function overview(learners: LearnerRow[], employees: EmployeeRow[] = []):
     fromRoster,
     staffCompleted,
     offRoster: fromRoster ? learners.filter((l) => !roster.has(l.email)).length : 0,
-    markedComplete: completed.length - timed.length,
     staffCompletionRate: totalEmployees ? staffCompleted / totalEmployees : 0,
     avgActiveMsToComplete: mean(activeToComplete),
     medianActiveMsToComplete: median(activeToComplete),
